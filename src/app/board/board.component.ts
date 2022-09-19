@@ -4,6 +4,8 @@ import { Subject } from 'rxjs';
 import { map, withLatestFrom, takeUntil } from 'rxjs/operators';
 import { Board, MoveType } from './interface';
 import { BoardService } from './board.service';
+import { MatDialog, MatDialogConfig, MatDialogRef } from '@angular/material/dialog';
+import { ModalComponent } from './modal/modal.component';
 
 @Component({
   selector: 'board',
@@ -20,8 +22,11 @@ export class BoardComponent implements OnInit {
   private destroyed = new Subject<void>();
 
   private dummyCell: Cell = {row: 0, col: 0};
+  modalDialog: MatDialogRef<ModalComponent, any> | undefined;
 
-  constructor(private boardService: BoardService) {  
+  constructor(
+    private boardService: BoardService,
+    public matDialog: MatDialog) {  
   }
 
   ngOnInit(): void {
@@ -121,6 +126,8 @@ export class BoardComponent implements OnInit {
       }
     }
 
+    this.checkForPromotion(to);
+
     //check for the result
 
     if(!this.boardService.isKingUnderAttack(newBoard, newBoard.move)) {
@@ -129,6 +136,24 @@ export class BoardComponent implements OnInit {
       this.copyBoard(newBoard, this.board);
     }
     
+  }
+
+  checkForPromotion(to: Cell) {
+    if(to.piece?.char === 'pawn') {
+      if(to.piece.color === 'white' && to.row === 7) {
+        this.openModal();
+      } else if(to.piece.color === 'black' && to.row === 0) {
+        this.openModal();
+      }
+    }
+  }
+
+  openModal() {
+    let dialogConfig = new MatDialogConfig();
+    dialogConfig.id = "modal-component";
+    dialogConfig.height = "500px";
+    dialogConfig.width = "650px";
+    this.modalDialog = this.matDialog.open(ModalComponent, dialogConfig);
   }
 
   removeOppPiece(cell: Cell, board: Board) {
