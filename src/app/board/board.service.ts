@@ -41,10 +41,6 @@ export class BoardService {
     let res = this.checkAllPiece(from, to, board, true);
     res = {...res,capture: capture || res.capture};
 
-    //if king is still in check then it's invalid move
-    if(board.isKingUnderAttack && this.isKingUnderAttack(board, board.move)) {
-      return this.invalidMove;
-    }
     return res;
 
   }
@@ -67,6 +63,10 @@ export class BoardService {
   }
 
   checkPawnMove(from: Cell, to: Cell): MoveType {
+    if(from.row === to.row && from.col === to.col) {
+      return this.invalidMove;
+    }
+
     if(from.col === to.col) {
       if((from.piece?.color === 'white' && to.row-from.row === 1) || (from.piece?.color === 'black' && from.row-to.row === 1)) {
         if(to.piece) {
@@ -100,6 +100,10 @@ export class BoardService {
   }
 
   checkRookMove(from: Cell, to: Cell, board: Board): MoveType {
+    if(from.row === to.row && from.col === to.col) {
+      return this.invalidMove;
+    }
+
     if(from.row === to.row) {
       if(from.col < to.col) {
         for(let i=from.col+1; i<to.col; i++) {
@@ -140,6 +144,10 @@ export class BoardService {
   }
 
   checkBishopMove(from: Cell, to: Cell, board: Board): MoveType {
+    if(from.row === to.row && from.col === to.col) {
+      return this.invalidMove;
+    }
+
     if(from.row-from.col === to.row-to.col) {
       if(from.row < to.row) {
         for(let i=1; i<=to.row-from.row-1; i++) {
@@ -180,6 +188,10 @@ export class BoardService {
   }
 
   checkKnightMove(from: Cell, to: Cell): MoveType {
+    if(from.row === to.row && from.col === to.col) {
+      return this.invalidMove;
+    }
+
     if(Math.abs(from.row-to.row) === 1 && Math.abs(from.col-to.col) === 2) {
       return this.validSimpleMove;
     }
@@ -190,6 +202,10 @@ export class BoardService {
   }
 
   checkKingMove(from: Cell, to: Cell, board: Board, isActualMove: boolean): MoveType {
+    if(from.row === to.row && from.col === to.col) {
+      return this.invalidMove;
+    }
+    
     const oppColor = board.move === 'white' ? 'black' : 'white';
     if(Math.abs(from.row-to.row) <= 1 && Math.abs(from.col-to.col) <= 1 && !this.isUnderCheckFromColor(board, to, oppColor, isActualMove)) {
       return this.validSimpleMove;

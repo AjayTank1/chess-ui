@@ -72,71 +72,77 @@ export class BoardComponent implements OnInit {
       return;
     }
 
-    if(from.piece) {
+    const newBoard = this.getTempBoard();
+    this.copyBoard(this.board, newBoard);
 
-      if(moveType.capture) {
-        this.removeOppPiece(to);
+    to = newBoard.cells[to.row][to.col];
+    from = newBoard.cells[from.row][from.col];
+
+    //make move on new board.  
+    if(moveType.capture) {
+      this.removeOppPiece(to, newBoard);
+    }
+
+    this.removePiece(from, newBoard);
+    this.addPiece(to, newBoard);
+
+    const piece: Piece = from.piece!;
+    from.piece = undefined;
+    to.piece = piece;
+    piece.isMoved = true;
+
+    if(moveType.type === 'shortCastle') {
+      this.removePiece(newBoard.cells[from.row][7], newBoard);
+      this.addPiece(newBoard.cells[from.row][5], newBoard);
+      newBoard.cells[from.row][5].piece = newBoard.cells[from.row][7].piece;
+      newBoard.cells[from.row][7].piece = undefined;
+      newBoard.cells[from.row][5].piece!.isMoved = true;
+    } else if(moveType.type === 'longCastle') {
+      this.removePiece(newBoard.cells[from.row][0], newBoard);
+      this.addPiece(newBoard.cells[from.row][3], newBoard);
+      newBoard.cells[from.row][3].piece = newBoard.cells[from.row][0].piece;
+      newBoard.cells[from.row][0].piece = undefined;
+      newBoard.cells[from.row][3].piece!.isMoved = true;
+    }
+
+    if(to.piece.char === 'king') {
+      if(to.piece.color === 'white') {
+        newBoard.whiteKingPosition = to;
+      } else {
+        newBoard.blackKingPosition = to;
       }
+    }
 
-      this.removePiece(from);
-      this.addPiece(to);
+    //check for the result
 
-      const piece: Piece = from.piece;
-      from.piece = undefined;
-      to.piece = piece;
-      piece.isMoved = true;
+    if(!this.boardService.isKingUnderAttack(newBoard, newBoard.move)) {
+      newBoard.move = newBoard.move === 'white' ? 'black' : 'white';
+      this.copyBoard(newBoard, this.board);
+    }
+    
+  }
 
-      if(moveType.type === 'shortCastle') {
-        this.removePiece(this.board.cells[from.row][7]);
-        this.addPiece(this.board.cells[from.row][5]);
-        this.board.cells[from.row][5].piece = this.board.cells[from.row][7].piece;
-        this.board.cells[from.row][7].piece = undefined;
-        this.board.cells[from.row][5].piece!.isMoved = true;
-      } else if(moveType.type === 'longCastle') {
-        this.removePiece(this.board.cells[from.row][0]);
-        this.addPiece(this.board.cells[from.row][3]);
-        this.board.cells[from.row][3].piece = this.board.cells[from.row][0].piece;
-        this.board.cells[from.row][0].piece = undefined;
-        this.board.cells[from.row][3].piece!.isMoved = true;
-      }
-
-      if(to.piece.char === 'king') {
-        if(to.piece.color === 'white') {
-          this.board.whiteKingPosition = to;
-        } else {
-          this.board.blackKingPosition = to;
-        }
-      }
-
-      this.board.move = this.board.move === 'white' ? 'black' : 'white';
-
-      //check for the result
-
-      this.board.isKingUnderAttack = this.boardService.isKingUnderAttack(this.board, this.board.move);
+  removeOppPiece(cell: Cell, board: Board) {
+    if(board.move === 'black') {
+      board.whitePieces.delete(cell);
+    } else {
+      board.blackPieces.delete(cell);
     }
   }
 
-  removeOppPiece(cell: Cell) {
-    if(this.board.move === 'black') {
-      this.board.whitePieces.delete(cell);
+  removePiece(cell: Cell, board: Board) {
+    if(board.move === 'white') {
+      board.whitePieces.delete(cell);
     } else {
-      this.board.blackPieces.delete(cell);
+      board.blackPieces.delete(cell);
     }
   }
 
-  removePiece(cell: Cell) {
-    if(this.board.move === 'white') {
-      this.board.whitePieces.delete(cell);
+  addPiece(cell: Cell, board: Board) {
+    if(board.move === 'white') {
+      board.whitePieces.add(cell);
     } else {
-      this.board.blackPieces.delete(cell);
-    }
-  }
-
-  addPiece(cell: Cell) {
-    if(this.board.move === 'white') {
-      this.board.whitePieces.add(cell);
-    } else {
-      this.board.blackPieces.add(cell);
+      board.blackPieces.add(cell);
     }
   }
 
@@ -217,6 +223,61 @@ export class BoardComponent implements OnInit {
 
   onMouseDown($event: any) {
     this.mouseDown.next(this.board.cells[$event.row][$event.col]);
+  }
+
+  getTempBoard(): Board {
+    return {
+      cells: this.getTempCell(),
+      move: '',
+      isKingUnderAttack: false,
+      whiteKingPosition: this.dummyCell,
+      blackKingPosition: this.dummyCell,
+      whitePieces: new Set<Cell>(),
+      blackPieces: new Set<Cell>(),
+      whiteCapturedPieces: new Set<Piece>(),
+      blackCapturedPieces: new Set<Piece>()
+    };
+  }
+
+  getTempCell(): Cell[][] {
+    
+    const newCells: Cell[][] = [];
+    for(let i=0; i<this.size; i++) {
+      const row: Cell[] = [];
+      for(let j=0; j<this.size; j++) {        
+        row.push(this.dummyCell);
+      }
+      newCells.push(row);
+    }
+    return newCells;
+  }
+
+  copyBoard(from: Board, to: Board): void {
+
+    for(let i=0; i<from.cells.length; i++) {
+      for(let j=0; j<from.cells.length; j++) {
+        to.cells[i][j] = {...from.cells[i][j]};
+      }
+    }
+    
+    to.whitePieces.clear();
+    for(let piece of from.whitePieces) {
+      to.whitePieces.add(to.cells[piece.row][piece.col]);
+    }
+
+    to.blackPieces.clear();
+    for(let piece of from.blackPieces) {
+      to.blackPieces.add(to.cells[piece.row][piece.col]);
+    }
+
+    to.whiteCapturedPieces = from.whiteCapturedPieces;
+    to.blackCapturedPieces = from.blackCapturedPieces;
+
+    to.move = from.move;
+    to.isKingUnderAttack = from.isKingUnderAttack;
+
+    to.whiteKingPosition = to.cells[from.whiteKingPosition.row][from.whiteKingPosition.col];
+    to.blackKingPosition = to.cells[from.blackKingPosition.row][from.blackKingPosition.col];
   }
 
 }
