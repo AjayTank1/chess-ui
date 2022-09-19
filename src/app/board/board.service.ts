@@ -38,16 +38,16 @@ export class BoardService {
       capture = true;
     }
 
-    let res = this.checkAllPiece(from, to, board, true);
+    let res = this.checkAllPiece(from, to, board, false);
     res = {...res,capture: capture || res.capture};
 
     return res;
 
   }
 
-  checkAllPiece(from: Cell, to: Cell, board: Board, isActualMove: boolean): MoveType {
+  checkAllPiece(from: Cell, to: Cell, board: Board, isAttackCheck: boolean): MoveType {
     if(from.piece!.char === 'pawn') {
-      return this.checkPawnMove(from, to);
+      return this.checkPawnMove(from, to, board, isAttackCheck);
     } else if(from.piece!.char === 'rook') {
       return this.checkRookMove(from, to, board);
     } else if(from.piece!.char === 'bishop') {
@@ -57,17 +57,17 @@ export class BoardService {
     } else if(from.piece!.char === 'queen') {
       return this.checkRookMove(from, to, board).valid || this.checkBishopMove(from, to, board).valid ? this.validSimpleMove : this.invalidMove;
     } else if(from.piece!.char === 'king') {
-      return this.checkKingMove(from, to, board, isActualMove);
+      return this.checkKingMove(from, to, board, isAttackCheck);
     }
     return this.invalidMove;
   }
 
-  checkPawnMove(from: Cell, to: Cell): MoveType {
+  checkPawnMove(from: Cell, to: Cell, board: Board, isAttackCheck: boolean): MoveType {
     if(from.row === to.row && from.col === to.col) {
       return this.invalidMove;
     }
 
-    if(from.col === to.col) {
+    if(!isAttackCheck && from.col === to.col) {
       if((from.piece?.color === 'white' && to.row-from.row === 1) || (from.piece?.color === 'black' && from.row-to.row === 1)) {
         if(to.piece) {
           return this.invalidMove;
@@ -86,17 +86,43 @@ export class BoardService {
         return this.invalidMove;
       }
     } else if(Math.abs(from.col - to.col) === 1) {
-      if(!to.piece) {
-        return this.invalidMove;
+      if(from.piece?.color === 'white' && from.row - to.row === -1) {
+        if(to.piece?.color === 'black') {
+          return this.validSimpleMove;
+        }
+        if(this.isEnPassant(from, to, board, isAttackCheck)) {
+          return {valid: true, type: 'enPassant', capture: true};
+        }
       }
-      if(from.piece?.color === 'white' && to.piece?.color === 'black' && from.row - to.row === -1) {
-        return this.validSimpleMove;
-      }
-      if(from.piece?.color === 'black' && to.piece?.color === 'white' && from.row - to.row === 1) {
-        return this.validSimpleMove;
+      if(from.piece?.color === 'black' && from.row - to.row === 1) {
+        if(to.piece?.color === 'white') {
+          return this.validSimpleMove;
+        }
+        if(this.isEnPassant(from, to, board, isAttackCheck)) {
+          return {valid: true, type: 'enPassant', capture: true};
+        }
       }
     }
     return this.invalidMove;;
+  }
+
+  isEnPassant(from: Cell, to: Cell, board: Board, isAttackCheck: boolean): boolean {
+    if(isAttackCheck) {
+      return false;
+    }
+    if(board.moveHistory.length) {
+      const lastMove = board.moveHistory[board.moveHistory.length-1];
+      if(from.piece?.color === 'white' && to.row === 5) {
+        if(lastMove.char === 'pawn' && lastMove.from.row === 6 && lastMove.from.col === to.col && lastMove.to.row === 4 && lastMove.to.col === to.col) {
+          return true;
+        }
+      } else if(from.piece?.color === 'black' && to.row === 2) {
+        if(lastMove.char === 'pawn' && lastMove.from.row === 1 && lastMove.from.col === to.col && lastMove.to.row === 3 && lastMove.to.col === to.col) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   checkRookMove(from: Cell, to: Cell, board: Board): MoveType {
@@ -201,26 +227,26 @@ export class BoardService {
     return this.invalidMove;
   }
 
-  checkKingMove(from: Cell, to: Cell, board: Board, isActualMove: boolean): MoveType {
+  checkKingMove(from: Cell, to: Cell, board: Board, isAttackCheck: boolean): MoveType {
     if(from.row === to.row && from.col === to.col) {
       return this.invalidMove;
     }
-    
+
     const oppColor = board.move === 'white' ? 'black' : 'white';
-    if(Math.abs(from.row-to.row) <= 1 && Math.abs(from.col-to.col) <= 1 && !this.isUnderCheckFromColor(board, to, oppColor, isActualMove)) {
+    if(Math.abs(from.row-to.row) <= 1 && Math.abs(from.col-to.col) <= 1 && !this.isUnderCheckFromColor(board, to, oppColor, isAttackCheck)) {
       return this.validSimpleMove;
     }
 
-    if(!isActualMove) {
+    if(isAttackCheck) {
       return this.invalidMove;
     }
 
     //castle
-    if(!this.isUnderCheckFromColor(board, from, oppColor, isActualMove) && from.row === to.row) {
+    if(!this.isUnderCheckFromColor(board, from, oppColor, isAttackCheck) && from.row === to.row) {
       if(!from.piece?.isMoved) {
         if(to.col === 6 && !board.cells[from.row][7].piece?.isMoved) {
           for(let i=5; i<=6; i++) {
-            if(board.cells[from.row][i].piece || this.isUnderCheckFromColor(board, board.cells[from.row][i], oppColor, isActualMove)) {
+            if(board.cells[from.row][i].piece || this.isUnderCheckFromColor(board, board.cells[from.row][i], oppColor, isAttackCheck)) {
               return this.invalidMove;
             }
           }
@@ -231,7 +257,7 @@ export class BoardService {
             return this.invalidMove;
           }
           for(let i=2; i<=3; i++) {
-            if(board.cells[from.row][i].piece || this.isUnderCheckFromColor(board, board.cells[from.row][i], oppColor, isActualMove)) {
+            if(board.cells[from.row][i].piece || this.isUnderCheckFromColor(board, board.cells[from.row][i], oppColor, isAttackCheck)) {
               return this.invalidMove;
             }
           }
@@ -242,8 +268,8 @@ export class BoardService {
     return this.invalidMove;
   }
 
-  isUnderCheckFromColor(board: Board, cell: Cell, color: string, isActualMove: boolean): boolean {
-    if(!isActualMove) {
+  isUnderCheckFromColor(board: Board, cell: Cell, color: string, isAttackCheck: boolean): boolean {
+    if(isAttackCheck) {
       return false;
     }
     const allPieces: Set<Cell> = color === 'white' ? board.whitePieces : board.blackPieces;
@@ -256,7 +282,7 @@ export class BoardService {
   }
 
   canAttack(from: Cell, to: Cell, board: Board): boolean {
-    return this.checkAllPiece(from, to, board, false).valid;
+    return this.checkAllPiece(from, to, board, true).valid;
   }
 
   isKingUnderAttack(board: Board, kingColor: string): boolean {

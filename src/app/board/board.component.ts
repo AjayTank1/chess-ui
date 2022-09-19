@@ -56,7 +56,7 @@ export class BoardComponent implements OnInit {
       cells.push(row);
     }
     
-    this.board = {cells, move: 'white', whitePieces, blackPieces, whiteCapturedPieces, blackCapturedPieces, whiteKingPosition, blackKingPosition, isKingUnderAttack: false};
+    this.board = {cells, move: 'white', whitePieces, blackPieces, whiteCapturedPieces, blackCapturedPieces, whiteKingPosition, blackKingPosition, isKingUnderAttack: false, moveHistory: []};
 
     this.mouseUp.pipe(takeUntil(this.destroyed), withLatestFrom(this.mouseDown))
     .subscribe(([to, from]) => {
@@ -103,6 +103,14 @@ export class BoardComponent implements OnInit {
       newBoard.cells[from.row][3].piece = newBoard.cells[from.row][0].piece;
       newBoard.cells[from.row][0].piece = undefined;
       newBoard.cells[from.row][3].piece!.isMoved = true;
+    } else if(moveType.type === 'enPassant') {
+      if(to.piece.color === 'white') {
+        this.removePiece(newBoard.cells[to.row-1][to.col], newBoard);
+        newBoard.cells[to.row-1][to.col].piece = undefined;
+      } else if(to.piece.color === 'black') {
+        this.removePiece(newBoard.cells[to.row+1][to.col], newBoard);
+        newBoard.cells[to.row+1][to.col].piece = undefined;
+      }
     }
 
     if(to.piece.char === 'king') {
@@ -117,6 +125,7 @@ export class BoardComponent implements OnInit {
 
     if(!this.boardService.isKingUnderAttack(newBoard, newBoard.move)) {
       newBoard.move = newBoard.move === 'white' ? 'black' : 'white';
+      newBoard.moveHistory.push({from: {row: from.row, col: from.col}, to: {row: to.row, col: to.col}, char: to.piece.char});
       this.copyBoard(newBoard, this.board);
     }
     
@@ -235,7 +244,8 @@ export class BoardComponent implements OnInit {
       whitePieces: new Set<Cell>(),
       blackPieces: new Set<Cell>(),
       whiteCapturedPieces: new Set<Piece>(),
-      blackCapturedPieces: new Set<Piece>()
+      blackCapturedPieces: new Set<Piece>(),
+      moveHistory: []
     };
   }
 
@@ -275,7 +285,7 @@ export class BoardComponent implements OnInit {
 
     to.move = from.move;
     to.isKingUnderAttack = from.isKingUnderAttack;
-
+    to.moveHistory = from.moveHistory;
     to.whiteKingPosition = to.cells[from.whiteKingPosition.row][from.whiteKingPosition.col];
     to.blackKingPosition = to.cells[from.blackKingPosition.row][from.blackKingPosition.col];
   }

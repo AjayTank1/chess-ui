@@ -10,6 +10,7 @@ export interface Board {
 	blackPieces: Set<Cell>;
 	whiteCapturedPieces: Set<Piece>;
 	blackCapturedPieces: Set<Piece>;
+	moveHistory: {from: {row: number, col: number}, to: {row: number, col: number}, char: string}[];
 
 }
 
