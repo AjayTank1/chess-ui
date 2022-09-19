@@ -9,8 +9,8 @@ export class BoardService {
 
   constructor() { }
 
-  private invalidMove: MoveType = {valid: false};
-  private validSimpleMove: MoveType = {valid: true};
+  private invalidMove: MoveType = {valid: false, capture: false};
+  private validSimpleMove: MoveType = {valid: true, capture: false};
 
   isMovePossible(from: Cell, to: Cell, board: Board): MoveType {
     //piece has to be there for a move
@@ -33,26 +33,42 @@ export class BoardService {
       return this.invalidMove;
     }
 
-    if(from.piece.char === 'pawn') {
-      return this.checkPawnMove(from, to);
-    } else if(from.piece.char === 'rook') {
-      return this.checkRookMove(from, to, board);
-    } else if(from.piece.char === 'bishop') {
-      return this.checkBishopMove(from, to, board);
-    } else if(from.piece.char === 'knight') {
-      return this.checkKnightMove(from, to);
-    } else if(from.piece.char === 'queen') {
-      return this.checkRookMove(from, to, board).valid || this.checkBishopMove(from, to, board).valid ? this.validSimpleMove : this.invalidMove;
-    } else if(from.piece.char === 'king') {
-      return this.checkKingMove(from, to, board);
+    let capture = false;
+    if(to.piece?.color && to.piece?.color !== from.piece.color) {
+      capture = true;
     }
 
-    return this.validSimpleMove;
+    let res = this.checkAllPiece(from, to, board, true);
+    res = {...res,capture: capture || res.capture};
+
+    //if king is still in check then it's invalid move
+    if(board.isKingUnderAttack && this.isKingUnderAttack(board, board.move)) {
+      return this.invalidMove;
+    }
+    return res;
+
+  }
+
+  checkAllPiece(from: Cell, to: Cell, board: Board, isActualMove: boolean): MoveType {
+    if(from.piece!.char === 'pawn') {
+      return this.checkPawnMove(from, to);
+    } else if(from.piece!.char === 'rook') {
+      return this.checkRookMove(from, to, board);
+    } else if(from.piece!.char === 'bishop') {
+      return this.checkBishopMove(from, to, board);
+    } else if(from.piece!.char === 'knight') {
+      return this.checkKnightMove(from, to);
+    } else if(from.piece!.char === 'queen') {
+      return this.checkRookMove(from, to, board).valid || this.checkBishopMove(from, to, board).valid ? this.validSimpleMove : this.invalidMove;
+    } else if(from.piece!.char === 'king') {
+      return this.checkKingMove(from, to, board, isActualMove);
+    }
+    return this.invalidMove;
   }
 
   checkPawnMove(from: Cell, to: Cell): MoveType {
     if(from.col === to.col) {
-      if(Math.abs(from.row-to.row) === 1) {
+      if((from.piece?.color === 'white' && to.row-from.row === 1) || (from.piece?.color === 'black' && from.row-to.row === 1)) {
         if(to.piece) {
           return this.invalidMove;
         } else {
@@ -173,35 +189,68 @@ export class BoardService {
     return this.invalidMove;
   }
 
-  checkKingMove(from: Cell, to: Cell, board: Board): MoveType {
-    if(Math.abs(from.row-to.row) <= 1 && Math.abs(from.col-to.col) <= 1) {
+  checkKingMove(from: Cell, to: Cell, board: Board, isActualMove: boolean): MoveType {
+    const oppColor = board.move === 'white' ? 'black' : 'white';
+    if(Math.abs(from.row-to.row) <= 1 && Math.abs(from.col-to.col) <= 1 && !this.isUnderCheckFromColor(board, to, oppColor, isActualMove)) {
       return this.validSimpleMove;
     }
+
+    if(!isActualMove) {
+      return this.invalidMove;
+    }
+
     //castle
-    if(!this.isUnderCheck() && from.row === to.row) {
+    if(!this.isUnderCheckFromColor(board, from, oppColor, isActualMove) && from.row === to.row) {
       if(!from.piece?.isMoved) {
         if(to.col === 6 && !board.cells[from.row][7].piece?.isMoved) {
           for(let i=5; i<=6; i++) {
-            if(board.cells[from.row][i].piece || this.isUnderCheck()) {
+            if(board.cells[from.row][i].piece || this.isUnderCheckFromColor(board, board.cells[from.row][i], oppColor, isActualMove)) {
               return this.invalidMove;
             }
           }
-          return {valid: true, type: 'shortCastle'};
+          return {valid: true, type: 'shortCastle', capture: false};
         }
         if(to.col === 2 && !board.cells[from.row][0].piece?.isMoved) {
+          if(board.cells[from.row][1].piece) {
+            return this.invalidMove;
+          }
           for(let i=2; i<=3; i++) {
-            if(board.cells[from.row][i].piece || this.isUnderCheck()) {
+            if(board.cells[from.row][i].piece || this.isUnderCheckFromColor(board, board.cells[from.row][i], oppColor, isActualMove)) {
               return this.invalidMove;
             }
           }
-          return {valid: true, type: 'longCastle'};
+          return {valid: true, type: 'longCastle', capture: false};
         }
       }
     }
     return this.invalidMove;
   }
 
-  isUnderCheck(): boolean {
+  isUnderCheckFromColor(board: Board, cell: Cell, color: string, isActualMove: boolean): boolean {
+    if(!isActualMove) {
+      return false;
+    }
+    const allPieces: Set<Cell> = color === 'white' ? board.whitePieces : board.blackPieces;
+    for(let piece of allPieces) {
+      if(piece.piece && this.canAttack(piece, cell, board)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  canAttack(from: Cell, to: Cell, board: Board): boolean {
+    return this.checkAllPiece(from, to, board, false).valid;
+  }
+
+  isKingUnderAttack(board: Board, kingColor: string): boolean {
+    const to: Cell = kingColor === 'white' ? board.whiteKingPosition : board.blackKingPosition;
+    const allPieces: Set<Cell> = kingColor === 'white' ? board.blackPieces : board.whitePieces;
+    for(let piece of allPieces) {
+      if(piece.piece && this.canAttack(piece, to, board)) {
+        return true;
+      }
+    }
     return false;
   }
 
