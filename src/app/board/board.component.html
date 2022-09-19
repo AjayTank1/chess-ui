@@ -1,0 +1,9 @@
+<div class="board">
+	<ng-container *ngFor="let row of board.cells; let i = index" >
+		<div class="row">
+			<ng-container *ngFor="let cell of row">
+				<cell [cell]=cell (mouseUp)=onMouseUp($event) (mouseDown)=onMouseDown($event)></cell>
+			</ng-container>
+		</div>
+	</ng-container>
+</div>

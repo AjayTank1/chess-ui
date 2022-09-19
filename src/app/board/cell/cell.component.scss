@@ -1,0 +1,31 @@
+@mixin height($size) {
+	max-height: $size;
+	max-width: $size;
+	min-height: $size;
+	min-width: $size;
+}
+
+@mixin theme($colorName) {
+	@include height(60px);
+	background: $colorName;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	user-select: none;
+}
+
+//#7186B8
+.cell-format-dark {
+	@include theme(#2f3643);
+}
+
+.cell-format-light {
+	@include theme(#7a8593);
+}
+
+.image-size {
+	width: 55px;
+	height: 55px;
+	pointer-events: none;
+}
+

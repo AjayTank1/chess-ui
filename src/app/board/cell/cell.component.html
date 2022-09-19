@@ -1,0 +1,3 @@
+<div [ngClass]="dark ? 'cell-format-dark' : 'cell-format-light'">
+	<img *ngIf='cell.piece' class="image-size" [src]=cell.piece.url alt="image">
+</div>
