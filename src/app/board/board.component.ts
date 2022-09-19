@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Cell, Piece } from './cell/interface';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { map, withLatestFrom, takeUntil } from 'rxjs/operators';
 import { Board, MoveType } from './interface';
 import { BoardService } from './board.service';
@@ -126,34 +126,47 @@ export class BoardComponent implements OnInit {
       }
     }
 
-    this.checkForPromotion(to);
-
-    //check for the result
-
     if(!this.boardService.isKingUnderAttack(newBoard, newBoard.move)) {
-      newBoard.move = newBoard.move === 'white' ? 'black' : 'white';
-      newBoard.moveHistory.push({from: {row: from.row, col: from.col}, to: {row: to.row, col: to.col}, char: to.piece.char});
-      this.copyBoard(newBoard, this.board);
+      this.checkForPromotion(to)
+      .subscribe(isPromoted => {
+        if(isPromoted) {
+          to.piece = this.getPromotedPiece(isPromoted.piece, to.piece!.color);
+        }
+        newBoard.move = newBoard.move === 'white' ? 'black' : 'white';
+        newBoard.moveHistory.push({from: {row: from.row, col: from.col}, to: {row: to.row, col: to.col}, char: to.piece!.char});
+        this.copyBoard(newBoard, this.board);
+      });
     }
     
+  }
+
+  getPromotedPiece(piece: string, color: string): Piece {
+    let res: Piece = {
+      char: piece,
+      color,
+      url: '',
+      isMoved: true
+    };
+    this.updatePieceUrl(res);
+    return res;
   }
 
   checkForPromotion(to: Cell) {
     if(to.piece?.char === 'pawn') {
       if(to.piece.color === 'white' && to.row === 7) {
-        this.openModal();
+        return this.openModal();
       } else if(to.piece.color === 'black' && to.row === 0) {
-        this.openModal();
+        return this.openModal();
       }
     }
+    return of(false);
   }
 
   openModal() {
-    let dialogConfig = new MatDialogConfig();
-    dialogConfig.id = "modal-component";
-    dialogConfig.height = "500px";
-    dialogConfig.width = "650px";
-    this.modalDialog = this.matDialog.open(ModalComponent, dialogConfig);
+    return this.matDialog.open(ModalComponent, {
+        width: '80%',
+        disableClose: true
+    }).afterClosed();
   }
 
   removeOppPiece(cell: Cell, board: Board) {
@@ -249,6 +262,31 @@ export class BoardComponent implements OnInit {
       url,
       isMoved: false
     }
+  }
+
+  updatePieceUrl(piece: Piece): void {
+    let url = piece.color === 'white' ? '/assets/img/w' : '/assets/img/b';
+    switch(piece.char) {
+      case 'rook':
+        url += 'R.png';
+        break;
+      case 'knight':
+        url += 'N.png';
+        break;
+      case 'bishop':
+        url += 'B.png';
+        break;
+      case 'queen':
+        url += 'Q.png';
+        break;
+      case 'king':
+        url += 'K.png';
+        break;
+      case 'pawn':
+        url += 'P.png';
+        break;
+    }
+    piece.url = url;
   }
 
   onMouseUp($event: any) {

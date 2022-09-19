@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { MatDialogRef } from '@angular/material/dialog';
 
 @Component({
   selector: 'modal',
@@ -7,9 +8,15 @@ import { Component, OnInit } from '@angular/core';
 })
 export class ModalComponent implements OnInit {
 
-  constructor() { }
+  public pieces = ['queen', 'knight', 'rook', 'bishop'];
+
+  constructor(private dialogRef: MatDialogRef<ModalComponent>) { }
 
   ngOnInit(): void {
+  }
+
+  close(piece: string): void {
+    this.dialogRef.close({piece});
   }
 
 }
