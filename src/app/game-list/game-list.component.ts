@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { GameService } from './../game/game.service';
-import { Board } from './../game/interface'
+import { BoardService } from './../game/board/board.service';
+import { Board, Game } from './../game/interface'
 
 @Component({
   selector: 'game-list',
@@ -9,12 +10,46 @@ import { Board } from './../game/interface'
 })
 export class GameListComponent implements OnInit {
 
-  constructor(private gameService: GameService) { }
-  game: Board[];
+  game: Game;
+  isLoading: boolean = true;
+
+  constructor(
+    private gameService: GameService,
+    private boardService: BoardService,
+    ) { }
+
+  
   ngOnInit(): void {
     this.gameService.getAllGame().subscribe(x=>{
-      this.game = JSON.parse(x) as Board[];
+      this.constructGame(x[0]);
     });
+  }
+
+  constructGame(gameString: string): void {
+    const json = JSON.parse(gameString);
+    const currentBoard = this.boardService.createNewBoard();
+    const boards: Board[] = [];
+    boards.push(currentBoard);
+    this.game = {
+      boards,
+      currentBoard,
+      moveHistory: []
+    }
+    for(let x of json) {
+      let entry = x.move;
+      const toCol: number = entry%10;
+      entry = Math.floor(entry/10);
+      const toRow: number = entry%10;
+      entry = Math.floor(entry/10);
+      const fromCol: number = entry%10;
+      entry = Math.floor(entry/10);
+      const fromRow: number = entry%10;
+
+      this.gameService.makeMove(this.game, fromRow, fromCol, toRow, toCol);
+      this.game.boards.push(this.game.currentBoard);
+    }
+    this.game.currentBoard = this.game.boards[0];
+    this.isLoading = false;
   }
 
 }

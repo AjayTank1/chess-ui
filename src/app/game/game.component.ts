@@ -10,11 +10,11 @@ import { GameService } from './game.service';
 })
 export class GameComponent implements OnInit {
 
-  @Input() boards: Board[];
+  //@Input() boards: Board[];
   @Input() readOnlyMode: boolean;
   private gameLen: number = 0;
   private actualGameLen = 0;
-  game: Game;
+  @Input() game: Game;
 
   constructor(
     private boardService: BoardService,
@@ -23,24 +23,18 @@ export class GameComponent implements OnInit {
 
   ngOnInit(): void {
     if(this.readOnlyMode) {
-      if(!this.boards?.length) {
+      if(!this.game) {
         throw Error("game moves has to be provided");
       }
-      this.game = {
-        boards: this.boards,
-        currentBoard: this.boards[0],
-        moveHistory: []
-      }
-      this.actualGameLen = this.boards.length;
+      this.actualGameLen = this.game.boards.length;
       this.gameLen = 1;
     } else {
-      this.boards = [];
       this.game = {
-        boards: this.boards,
+        boards: [],
         currentBoard: this.boardService.createNewBoard(),
         moveHistory: []
       }
-      this.boards.push(this.game.currentBoard);
+      this.game.boards.push(this.game.currentBoard);
       this.gameLen += 1;
       this.actualGameLen = this.gameLen;
     }
@@ -48,31 +42,29 @@ export class GameComponent implements OnInit {
 
   makeMove($event: any) {
     if(!this.readOnlyMode) {
-      const res = this.boardService.makeMove(this.game, $event.from, $event.to);
+      const res = this.gameService.makeMove(this.game, $event.from.row, $event.from.col, $event.to.row, $event.to.col);
       if(res) {
-        if(this.gameLen === this.boards.length) {
-          this.boards.push(this.game.currentBoard);
-        } else if(this.gameLen < this.boards.length) {
-          this.boards[this.gameLen] = this.game.currentBoard; 
+        if(this.gameLen === this.game.boards.length) {
+          this.game.boards.push(this.game.currentBoard);
+        } else if(this.gameLen < this.game.boards.length) {
+          this.game.boards[this.gameLen] = this.game.currentBoard; 
         }
         this.gameLen +=1;
         this.actualGameLen = this.gameLen;
-      } else {
-        this.game.currentBoard = this.game.boards[this.game.boards.length-1];
       }
     }
   }
 
   goBack(): void {
     if(this.gameLen > 1) {
-      this.game.currentBoard = this.boards[this.gameLen-2];
+      this.game.currentBoard = this.game.boards[this.gameLen-2];
       this.gameLen -= 1;
     }
   }
 
   goNext(): void {
     if(this.gameLen < this.actualGameLen) {
-      this.game.currentBoard = this.boards[this.gameLen];
+      this.game.currentBoard = this.game.boards[this.gameLen];
       this.gameLen += 1;
     }
   }
