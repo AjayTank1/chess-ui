@@ -1,16 +1,96 @@
 import { Injectable } from '@angular/core';
-import { Cell } from './cell/interface';
+import { Cell, Piece } from './cell/interface';
 import { Board, MoveType } from './interface';
+import { ReplaySubject, of } from 'rxjs';
+import { MatDialog, MatDialogConfig, MatDialogRef } from '@angular/material/dialog';
+import { ModalComponent } from './modal/modal.component';
 
 @Injectable({
   providedIn: 'root'
 })
 export class BoardService {
 
-  constructor() { }
+  constructor(public matDialog: MatDialog) { }
 
   private invalidMove: MoveType = {valid: false, capture: false};
   private validSimpleMove: MoveType = {valid: true, capture: false};
+  private dummyCell: Cell = {row: 0, col: 0};
+  private size: number = 8;
+
+  makeMove(board: Board, fromCell: Cell, toCell: Cell): ReplaySubject<any> {
+    const res = new ReplaySubject<any>(1);
+    let from: Cell = board.cells[fromCell.row][fromCell.col];
+    let to: Cell = board.cells[toCell.row][toCell.col];
+
+    const moveType: MoveType = this.isMovePossible(from, to, board);
+    
+    if(!moveType.valid) {
+      res.next(false);
+      return res;
+    }
+
+    const newBoard = this.getTempBoard();
+    this.copyBoard(board, newBoard);
+
+    to = newBoard.cells[to.row][to.col];
+    from = newBoard.cells[from.row][from.col];
+
+    //make move on new board.  
+    if(moveType.capture) {
+      this.removeOppPiece(to, newBoard);
+    }
+
+    this.removePiece(from, newBoard);
+    this.addPiece(to, newBoard);
+
+    const piece: Piece = from.piece!;
+    from.piece = undefined;
+    to.piece = piece;
+    piece.isMoved = true;
+
+    if(moveType.type === 'shortCastle') {
+      this.removePiece(newBoard.cells[from.row][7], newBoard);
+      this.addPiece(newBoard.cells[from.row][5], newBoard);
+      newBoard.cells[from.row][5].piece = newBoard.cells[from.row][7].piece;
+      newBoard.cells[from.row][7].piece = undefined;
+      newBoard.cells[from.row][5].piece!.isMoved = true;
+    } else if(moveType.type === 'longCastle') {
+      this.removePiece(newBoard.cells[from.row][0], newBoard);
+      this.addPiece(newBoard.cells[from.row][3], newBoard);
+      newBoard.cells[from.row][3].piece = newBoard.cells[from.row][0].piece;
+      newBoard.cells[from.row][0].piece = undefined;
+      newBoard.cells[from.row][3].piece!.isMoved = true;
+    } else if(moveType.type === 'enPassant') {
+      if(to.piece.color === 'white') {
+        this.removePiece(newBoard.cells[to.row-1][to.col], newBoard);
+        newBoard.cells[to.row-1][to.col].piece = undefined;
+      } else if(to.piece.color === 'black') {
+        this.removePiece(newBoard.cells[to.row+1][to.col], newBoard);
+        newBoard.cells[to.row+1][to.col].piece = undefined;
+      }
+    }
+
+    if(to.piece.char === 'king') {
+      if(to.piece.color === 'white') {
+        newBoard.whiteKingPosition = to;
+      } else {
+        newBoard.blackKingPosition = to;
+      }
+    }
+
+    if(!this.isKingUnderAttack(newBoard, newBoard.move)) {
+      this.checkForPromotion(to)
+      .subscribe( (isPromoted: any) => {
+        if(isPromoted) {
+          to.piece = this.getPromotedPiece(isPromoted.piece, to.piece!.color);
+        }
+        newBoard.move = newBoard.move === 'white' ? 'black' : 'white';
+        newBoard.moveHistory.push({from: {row: from.row, col: from.col}, to: {row: to.row, col: to.col}, char: to.piece!.char});
+        res.next(newBoard);
+      });
+    }
+    return res;
+  }
 
   isMovePossible(from: Cell, to: Cell, board: Board): MoveType {
     //piece has to be there for a move
@@ -294,6 +374,241 @@ export class BoardService {
       }
     }
     return false;
+  }
+
+  getPromotedPiece(piece: string, color: string): Piece {
+    let res: Piece = {
+      char: piece,
+      color,
+      url: '',
+      isMoved: true
+    };
+    this.updatePieceUrl(res);
+    return res;
+  }
+
+  checkForPromotion(to: Cell) {
+    if(to.piece?.char === 'pawn') {
+      if(to.piece.color === 'white' && to.row === 7) {
+        return this.openModal();
+      } else if(to.piece.color === 'black' && to.row === 0) {
+        return this.openModal();
+      }
+    }
+    return of(false);
+  }
+
+  openModal() {
+    return this.matDialog.open(ModalComponent, {
+        width: '80%',
+        disableClose: true
+    }).afterClosed();
+  }
+
+  removeOppPiece(cell: Cell, board: Board) {
+    if(board.move === 'black') {
+      board.whitePieces.delete(cell);
+    } else {
+      board.blackPieces.delete(cell);
+    }
+  }
+
+  removePiece(cell: Cell, board: Board) {
+    if(board.move === 'white') {
+      board.whitePieces.delete(cell);
+    } else {
+      board.blackPieces.delete(cell);
+    }
+  }
+
+  addPiece(cell: Cell, board: Board) {
+    if(board.move === 'white') {
+      board.whitePieces.add(cell);
+    } else {
+      board.blackPieces.add(cell);
+    }
+  }
+
+  getPiece(row: number, col: number): Piece|undefined {
+    let color: string = '';
+    let char: string = '';
+    let url: string = '';
+
+    if(row > 1 && row <6) {
+      return undefined;
+    }
+
+    // check color
+    if(row == 0 || row == 1) {
+      color = 'white';
+      url = '/assets/img/w';
+    }
+
+    if(row == 6 || row == 7) {
+      color = 'black';
+      url = '/assets/img/b';
+    }
+
+    //check piece
+    if(row == 1 || row == 6) {
+      char = 'pawn';
+      url += 'P.png';
+      return {
+        color,
+        char,
+        url,
+        isMoved: false
+      }
+    }
+
+    switch(col) {
+      case 0:
+      case 7:
+        char = 'rook';
+        url += 'R.png';
+        break;
+      case 1:
+      case 6:
+        char = 'knight';
+        url += 'N.png';
+        break;
+      case 2:
+      case 5:
+        char = 'bishop';
+        url += 'B.png';
+        break;
+      case 3:
+        char = 'queen';
+        url += 'Q.png';
+        break;
+      case 4:
+        char = 'king';
+        url += 'K.png';
+        break;
+    }
+
+    return {
+      color,
+      char,
+      url,
+      isMoved: false
+    }
+  }
+
+  updatePieceUrl(piece: Piece): void {
+    let url = piece.color === 'white' ? '/assets/img/w' : '/assets/img/b';
+    switch(piece.char) {
+      case 'rook':
+        url += 'R.png';
+        break;
+      case 'knight':
+        url += 'N.png';
+        break;
+      case 'bishop':
+        url += 'B.png';
+        break;
+      case 'queen':
+        url += 'Q.png';
+        break;
+      case 'king':
+        url += 'K.png';
+        break;
+      case 'pawn':
+        url += 'P.png';
+        break;
+    }
+    piece.url = url;
+  }
+
+  getTempBoard(): Board {
+    return {
+      cells: this.getTempCell(),
+      move: '',
+      isKingUnderAttack: false,
+      whiteKingPosition: this.dummyCell,
+      blackKingPosition: this.dummyCell,
+      whitePieces: new Set<Cell>(),
+      blackPieces: new Set<Cell>(),
+      whiteCapturedPieces: new Set<Piece>(),
+      blackCapturedPieces: new Set<Piece>(),
+      moveHistory: []
+    };
+  }
+
+  getTempCell(): Cell[][] {
+    
+    const newCells: Cell[][] = [];
+    for(let i=0; i<this.size; i++) {
+      const row: Cell[] = [];
+      for(let j=0; j<this.size; j++) {        
+        row.push(this.dummyCell);
+      }
+      newCells.push(row);
+    }
+    return newCells;
+  }
+
+  copyBoard(from: Board, to: Board): void {
+
+    for(let i=0; i<from.cells.length; i++) {
+      for(let j=0; j<from.cells.length; j++) {
+        to.cells[i][j] = {...from.cells[i][j]};
+      }
+    }
+    
+    to.whitePieces.clear();
+    for(let piece of from.whitePieces) {
+      to.whitePieces.add(to.cells[piece.row][piece.col]);
+    }
+
+    to.blackPieces.clear();
+    for(let piece of from.blackPieces) {
+      to.blackPieces.add(to.cells[piece.row][piece.col]);
+    }
+
+    to.whiteCapturedPieces = from.whiteCapturedPieces;
+    to.blackCapturedPieces = from.blackCapturedPieces;
+
+    to.move = from.move;
+    to.isKingUnderAttack = from.isKingUnderAttack;
+    to.moveHistory = from.moveHistory;
+    to.whiteKingPosition = to.cells[from.whiteKingPosition.row][from.whiteKingPosition.col];
+    to.blackKingPosition = to.cells[from.blackKingPosition.row][from.blackKingPosition.col];
+  }
+
+  createNewBoard(): Board {
+    const cells: Cell[][] = [];
+    let whiteKingPosition: Cell = this.dummyCell;
+    let blackKingPosition: Cell = this.dummyCell;
+    const whitePieces: Set<Cell> = new Set<Cell>();
+    const blackPieces: Set<Cell> = new Set<Cell>();
+    const whiteCapturedPieces: Set<Piece> = new Set<Piece>();
+    const blackCapturedPieces: Set<Piece> = new Set<Piece>();
+
+    for(let i=0; i<this.size; i++) {
+      const row: Cell[] = [];
+      for(let j=0; j<this.size; j++) {
+        const piece: Piece | undefined = this.getPiece(i,j);
+        const cell: Cell = {row: i, col: j, piece};
+        row.push(cell);
+
+        if(piece?.color === 'white') {
+          if(piece?.char === 'king') {
+            whiteKingPosition = cell;
+          }
+          whitePieces.add(cell);
+        } else if(piece?.color === 'black') {
+          if(piece?.char === 'king') {
+            blackKingPosition = cell;
+          }
+          blackPieces.add(cell);
+        }
+
+      }
+      cells.push(row);
+    }
+    
+    return {cells, move: 'white', whitePieces, blackPieces, whiteCapturedPieces, blackCapturedPieces, whiteKingPosition, blackKingPosition, isKingUnderAttack: false, moveHistory: []};
   }
 
 }

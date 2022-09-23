@@ -8,6 +8,9 @@ import { CellComponent } from './board/cell/cell.component';
 import { ModalComponent } from './board/modal/modal.component';
 import { MatDialogModule } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { GameComponent } from './game/game.component';
+import { HttpClientModule } from '@angular/common/http';
+import { GameService } from './game/game.service';
 
 @NgModule({
   declarations: [
@@ -15,13 +18,15 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
     BoardComponent,
     CellComponent,
     ModalComponent,
+    GameComponent,
   ],
   imports: [
     BrowserModule,
     MatDialogModule,
     NoopAnimationsModule,
+    HttpClientModule,
   ],
-  providers: [BoardService],
+  providers: [BoardService, GameService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
