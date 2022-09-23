@@ -1,8 +1,7 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { Cell, Piece } from './cell/interface';
+import { Cell, Piece, Board, MoveType } from './../interface';
 import { Subject, of } from 'rxjs';
 import { map, withLatestFrom, takeUntil } from 'rxjs/operators';
-import { Board, MoveType } from './interface';
 import { BoardService } from './board.service';
 import { MatDialog, MatDialogConfig, MatDialogRef } from '@angular/material/dialog';
 
@@ -20,8 +19,6 @@ export class BoardComponent implements OnInit {
   private destroyed = new Subject<void>();
 
   @Output() makeMove = new EventEmitter();
-
-  //modalDialog: MatDialogRef<ModalComponent, any> | undefined;
 
   constructor() {  
   }

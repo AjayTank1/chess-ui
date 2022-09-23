@@ -12,4 +12,8 @@ export class GameService {
   saveGame(data: any): Observable<any> {
     return this.http.post("http://localhost:6060/game", data);
   }
+
+  getAllGame(): Observable<any> {
+    return this.http.get("http://localhost:6060/game");
+  }
 }

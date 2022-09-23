@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, HostListener, EventEmitter } from '@angular/core';
-import { Cell } from './interface'
+import { Cell } from './../interface'
 
 @Component({
   selector: 'cell',

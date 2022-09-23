@@ -1,0 +1,19 @@
+.main{
+	display: flex;
+	flex-direction: row;
+}
+
+.board {
+	display: flex;
+	flex-direction: column-reverse;
+	width: fit-content;
+	border:2px solid black;
+}
+
+
+.nav {
+	display: flex;
+	flex-direction: column;
+	min-width: 200px;
+	background: black;
+}
