@@ -10,7 +10,6 @@ import { GameService } from './game.service';
 })
 export class GameComponent implements OnInit {
 
-  //@Input() boards: Board[];
   @Input() readOnlyMode: boolean;
   private gameLen: number = 0;
   private actualGameLen = 0;

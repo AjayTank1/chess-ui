@@ -1,3 +1,13 @@
+export interface GameTreeNode {
+	board: Board;
+	nodes?: GameTreeNode[];	
+	fromRow: number;
+	fromCol: number;
+	toRow: number;
+	toCol: number;
+	parent?: GameTreeNode;
+}
+
 export interface Game {
 	boards: Board[];
 	currentBoard: Board;

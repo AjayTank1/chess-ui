@@ -8,6 +8,8 @@ import { ModalComponent } from './game/modal/modal.component';
 import { MatDialogModule } from '@angular/material/dialog';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { GameComponent } from './game/game.component';
+import { GameTreeComponent } from './game/game-tree.component';
+import { MoveDisplayComponent } from './game/move-display.component';
 import { HttpClientModule } from '@angular/common/http';
 import { GameService } from './game/game.service';
 import { GameListComponent } from './game-list/game-list.component';
@@ -39,6 +41,8 @@ const routes: Routes = [
     GameComponent,
     GameListComponent,
     GameAnalyzeComponent,
+    GameTreeComponent,
+    MoveDisplayComponent,
   ],
   imports: [
     BrowserModule,

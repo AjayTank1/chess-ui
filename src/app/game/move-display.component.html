@@ -1,0 +1,5 @@
+<ng-container *ngIf="currentTreeNode">
+	<div *ngFor="let node of currentTreeNode.nodes" (click)=moveTo(node)>
+		{{node.fromRow}} {{node.fromCol}} to {{node.toRow}} {{node.toCol}}
+	</div>
+</ng-container>
