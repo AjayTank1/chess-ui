@@ -13,7 +13,7 @@ export class GameTreeComponent implements OnInit {
 
   private gameLen: number = 0;
   private actualGameLen = 10;
-  private readOnlyMode = true;
+  @Input() readOnlyMode: boolean;
   @Input() gameTreeNode: GameTreeNode;
   currentTreeNode: GameTreeNode;
   @ViewChild(BoardComponent) board: BoardComponent ;//ElementRef<BoardComponent>;
@@ -24,18 +24,44 @@ export class GameTreeComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    if(this.readOnlyMode) {
-      if(!this.gameTreeNode) {
-        throw Error("game moves has to be provided");
-      }
-      this.currentTreeNode = this.gameTreeNode;
-      //this.actualGameLen = this.game.boards.length;
-      this.gameLen = 1;
-    }
+    this.currentTreeNode = this.gameTreeNode;
+    this.gameLen = 1;
+
+    // if(this.readOnlyMode) {
+    //   if(!this.gameTreeNode) {
+    //     throw Error("game moves has to be provided");
+    //   }
+    //   this.currentTreeNode = this.gameTreeNode;
+    //   //this.actualGameLen = this.game.boards.length;
+    //   this.gameLen = 1;
+    // } else {
+    //   this.game = {
+    //     boards: [],
+    //     currentBoard: this.boardService.createNewBoard(),
+    //     moveHistory: []
+    //   }
+    //   this.game.boards.push(this.game.currentBoard);
+    //   this.gameLen += 1;
+    //   this.actualGameLen = this.gameLen;
+    // }
   }
 
-  makeMove($event: any) {
-    
+  makeMove($event: any): void {
+    if(this.readOnlyMode) {
+      return;
+    }
+    if(this.gameTreeNode.nodes) {
+      for(let node of this.gameTreeNode.nodes) {
+        if(node.fromRow === $event.from.row && node.fromCol === $event.from.col && node.toRow === $event.to.row && node.toCol === $event.to.col) {
+          this.currentTreeNode = node;
+          return;
+        }
+      }
+    }
+    const res = this.gameService.makeMove(this.currentTreeNode, $event.from.row, $event.from.col, $event.to.row, $event.to.col, false);
+    if(res) {
+      // back/next
+    }
   }
 
   goBack(): void {

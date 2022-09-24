@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { GameService } from './../game/game.service';
 import { BoardService } from './../game/board/board.service';
-import { Board, Game, GameTreeNode } from './../game/interface'
+import { Board, Game, GameTreeNode, GameMoveTreeNode } from './../game/interface'
 
 @Component({
   selector: 'game-list',
@@ -26,6 +26,10 @@ export class GameListComponent implements OnInit {
       this.gameTreeNode = this.makeGameTree(games);
       this.isLoading = false;
     });
+  }
+
+  makeGameMoveTree(games: Game[]): GameTreeNode {
+
   }
 
   constructGame(gameString: string): Game {
@@ -63,6 +67,7 @@ export class GameListComponent implements OnInit {
       fromCol: -1,
       toRow: -1,
       toCol: -1,
+      char: '',
     };
     games.forEach(game => this.makeGameTreeForSingleGame(game, gameTreeNode));
     return gameTreeNode;
@@ -104,6 +109,7 @@ export class GameListComponent implements OnInit {
       toRow: move.to.row,
       toCol: move.to.col,
       parent: gameTreeNode,
+      char: game.boards[index].cells[move.from.row][move.from.col].piece!.char,
     }
     gameTreeNode.nodes.push(newTreeNode);
     this.createNewNode(game, index + 1, newTreeNode);

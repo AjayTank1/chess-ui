@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Cell, Piece, Board, MoveType, Game } from './../interface';
+import { Cell, Piece, Board, MoveType, GameTreeNode } from './../interface';
 import { of } from 'rxjs';
 import { MatDialog, MatDialogConfig, MatDialogRef } from '@angular/material/dialog';
 import { ModalComponent } from './../modal/modal.component';
@@ -16,30 +16,33 @@ export class BoardService {
   private dummyCell: Cell = {row: 0, col: 0};
   private size: number = 8;
   
-  makeMove(game: Game, fromCell: Cell, toCell: Cell): boolean {
-    const board = game.currentBoard;
-    let from: Cell = board.cells[fromCell.row][fromCell.col];
-    let to: Cell = board.cells[toCell.row][toCell.col];
+  makeMove(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number): boolean {
+    const board = gameTreeNode.board;
+    let from: Cell = board.cells[fromRow][fromCol];
+    let to: Cell = board.cells[toRow][toCol];
 
-    const moveType: MoveType = this.isMovePossible(from, to, game);
+    const moveType: MoveType = this.isMovePossible(gameTreeNode, from, to);
     
     if(!moveType.valid) {
       return true;
     }
 
-    const newBoard = this.getTempBoard(board);
-    game.currentBoard = newBoard;
+    const newTreeNode = this.getTempTreeNode(gameTreeNode, fromRow, fromCol, toRow, toCol);
+    if(!gameTreeNode.nodes) {
+      gameTreeNode.nodes = [];
+    }
+    gameTreeNode.nodes.push(newTreeNode);
     
-    to = newBoard.cells[to.row][to.col];
-    from = newBoard.cells[from.row][from.col];
+    to = newTreeNode.board.cells[to.row][to.col];
+    from = newTreeNode.board.cells[from.row][from.col];
 
     //make move on new board.  
     if(moveType.capture) {
-      this.removeOppPiece(to, newBoard);
+      this.removeOppPiece(newTreeNode.board, to);
     }
 
-    this.removePiece(from, newBoard);
-    this.addPiece(to, newBoard);
+    this.removePiece(newTreeNode.board, from);
+    this.addPiece(newTreeNode.board, to);
 
     const piece: Piece = from.piece!;
     from.piece = undefined;
@@ -47,36 +50,36 @@ export class BoardService {
     piece.isMoved = true;
 
     if(moveType.type === 'shortCastle') {
-      this.removePiece(newBoard.cells[from.row][7], newBoard);
-      this.addPiece(newBoard.cells[from.row][5], newBoard);
-      newBoard.cells[from.row][5].piece = newBoard.cells[from.row][7].piece;
-      newBoard.cells[from.row][7].piece = undefined;
-      newBoard.cells[from.row][5].piece!.isMoved = true;
+      this.removePiece(newTreeNode.board, newTreeNode.board.cells[from.row][7]);
+      this.addPiece(newTreeNode.board, newTreeNode.board.cells[from.row][5]);
+      newTreeNode.board.cells[from.row][5].piece = newTreeNode.board.cells[from.row][7].piece;
+      newTreeNode.board.cells[from.row][7].piece = undefined;
+      newTreeNode.board.cells[from.row][5].piece!.isMoved = true;
     } else if(moveType.type === 'longCastle') {
-      this.removePiece(newBoard.cells[from.row][0], newBoard);
-      this.addPiece(newBoard.cells[from.row][3], newBoard);
-      newBoard.cells[from.row][3].piece = newBoard.cells[from.row][0].piece;
-      newBoard.cells[from.row][0].piece = undefined;
-      newBoard.cells[from.row][3].piece!.isMoved = true;
+      this.removePiece(newTreeNode.board, newTreeNode.board.cells[from.row][0]);
+      this.addPiece(newTreeNode.board, newTreeNode.board.cells[from.row][3]);
+      newTreeNode.board.cells[from.row][3].piece = newTreeNode.board.cells[from.row][0].piece;
+      newTreeNode.board.cells[from.row][0].piece = undefined;
+      newTreeNode.board.cells[from.row][3].piece!.isMoved = true;
     } else if(moveType.type === 'enPassant') {
       if(to.piece.color === 'white') {
-        this.removePiece(newBoard.cells[to.row-1][to.col], newBoard);
-        newBoard.cells[to.row-1][to.col].piece = undefined;
+        this.removePiece(newTreeNode.board, newTreeNode.board.cells[to.row-1][to.col]);
+        newTreeNode.board.cells[to.row-1][to.col].piece = undefined;
       } else if(to.piece.color === 'black') {
-        this.removePiece(newBoard.cells[to.row+1][to.col], newBoard);
-        newBoard.cells[to.row+1][to.col].piece = undefined;
+        this.removePiece(newTreeNode.board, newTreeNode.board.cells[to.row+1][to.col]);
+        newTreeNode.board.cells[to.row+1][to.col].piece = undefined;
       }
     }
 
     if(to.piece.char === 'king') {
       if(to.piece.color === 'white') {
-        newBoard.whiteKingPosition = to;
+        newTreeNode.board.whiteKingPosition = to;
       } else {
-        newBoard.blackKingPosition = to;
+        newTreeNode.board.blackKingPosition = to;
       }
     }
-
-    if(this.isKingUnderAttack(game, newBoard.move)) {
+    
+    if(this.isKingUnderAttack(gameTreeNode, newTreeNode.board.move)) {
       return false;
     }
     
@@ -85,14 +88,13 @@ export class BoardService {
       if(isPromoted) {
         to.piece = this.getPromotedPiece(isPromoted.piece, to.piece!.color);
       }
-      newBoard.move = newBoard.move === 'white' ? 'black' : 'white';
-      game.moveHistory.push({from: {row: from.row, col: from.col}, to: {row: to.row, col: to.col}, char: to.piece!.char});
+      
     });
     return true;
   }
 
-  isMovePossible(from: Cell, to: Cell, game: Game): MoveType {
-    const board = game.currentBoard;
+  isMovePossible(gameTreeNode: GameTreeNode, from: Cell, to: Cell): MoveType {
+    const board = gameTreeNode.board;
     //piece has to be there for a move
     if(!from.piece) {
       return this.invalidMove;
@@ -118,33 +120,33 @@ export class BoardService {
       capture = true;
     }
 
-    let res = this.checkAllPiece(from, to, game, false);
+    let res = this.checkAllPiece(gameTreeNode, from, to, false);
     res = {...res,capture: capture || res.capture};
 
     return res;
 
   }
 
-  checkAllPiece(from: Cell, to: Cell, game: Game, isAttackCheck: boolean): MoveType {
-    const board = game.currentBoard;
+  checkAllPiece(gameTreeNode: GameTreeNode, from: Cell, to: Cell, isAttackCheck: boolean): MoveType {
+    const board = gameTreeNode.board;
     if(from.piece!.char === 'pawn') {
-      return this.checkPawnMove(from, to, game, isAttackCheck);
+      return this.checkPawnMove(gameTreeNode, from, to, isAttackCheck);
     } else if(from.piece!.char === 'rook') {
-      return this.checkRookMove(from, to, board);
+      return this.checkRookMove(board, from, to);
     } else if(from.piece!.char === 'bishop') {
-      return this.checkBishopMove(from, to, board);
+      return this.checkBishopMove(board, from, to);
     } else if(from.piece!.char === 'knight') {
       return this.checkKnightMove(from, to);
     } else if(from.piece!.char === 'queen') {
-      return this.checkRookMove(from, to, board).valid || this.checkBishopMove(from, to, board).valid ? this.validSimpleMove : this.invalidMove;
+      return this.checkRookMove(board, from, to).valid || this.checkBishopMove(board, from, to).valid ? this.validSimpleMove : this.invalidMove;
     } else if(from.piece!.char === 'king') {
-      return this.checkKingMove(from, to, game, isAttackCheck);
+      return this.checkKingMove(gameTreeNode, from, to, isAttackCheck);
     }
     return this.invalidMove;
   }
 
-  checkPawnMove(from: Cell, to: Cell, game: Game, isAttackCheck: boolean): MoveType {
-    const board = game.currentBoard;
+  checkPawnMove(gameTreeNode: GameTreeNode, from: Cell, to: Cell, isAttackCheck: boolean): MoveType {
+    const board = gameTreeNode.board;
     if(from.row === to.row && from.col === to.col) {
       return this.invalidMove;
     }
@@ -172,7 +174,7 @@ export class BoardService {
         if(to.piece?.color === 'black') {
           return this.validSimpleMove;
         }
-        if(this.isEnPassant(from, to, game, isAttackCheck)) {
+        if(this.isEnPassant(gameTreeNode, from, to, isAttackCheck)) {
           return {valid: true, type: 'enPassant', capture: true};
         }
       }
@@ -180,7 +182,7 @@ export class BoardService {
         if(to.piece?.color === 'white') {
           return this.validSimpleMove;
         }
-        if(this.isEnPassant(from, to, game, isAttackCheck)) {
+        if(this.isEnPassant(gameTreeNode, from, to, isAttackCheck)) {
           return {valid: true, type: 'enPassant', capture: true};
         }
       }
@@ -188,19 +190,19 @@ export class BoardService {
     return this.invalidMove;;
   }
 
-  isEnPassant(from: Cell, to: Cell, game: Game, isAttackCheck: boolean): boolean {
-    const board = game.currentBoard;
+  isEnPassant(gameTreeNode: GameTreeNode, from: Cell, to: Cell, isAttackCheck: boolean): boolean {
+    const board = gameTreeNode.board;
     if(isAttackCheck) {
       return false;
     }
-    if(game.moveHistory.length) {
-      const lastMove = game.moveHistory[game.moveHistory.length-1];
+    if(gameTreeNode.parent) {
+      const parent = gameTreeNode.parent;
       if(from.piece?.color === 'white' && to.row === 5) {
-        if(lastMove.char === 'pawn' && lastMove.from.row === 6 && lastMove.from.col === to.col && lastMove.to.row === 4 && lastMove.to.col === to.col) {
+        if(parent.char === 'pawn' && parent.fromRow === 6 && parent.fromCol === to.col && parent.toRow === 4 && parent.toCol === to.col) {
           return true;
         }
       } else if(from.piece?.color === 'black' && to.row === 2) {
-        if(lastMove.char === 'pawn' && lastMove.from.row === 1 && lastMove.from.col === to.col && lastMove.to.row === 3 && lastMove.to.col === to.col) {
+        if(parent.char === 'pawn' && parent.fromRow === 1 && parent.fromCol === to.col && parent.toRow === 3 && parent.toCol === to.col) {
           return true;
         }
       }
@@ -208,7 +210,7 @@ export class BoardService {
     return false;
   }
 
-  checkRookMove(from: Cell, to: Cell, board: Board): MoveType {
+  checkRookMove(board: Board, from: Cell, to: Cell): MoveType {
     if(from.row === to.row && from.col === to.col) {
       return this.invalidMove;
     }
@@ -252,7 +254,7 @@ export class BoardService {
     return this.invalidMove;
   }
 
-  checkBishopMove(from: Cell, to: Cell, board: Board): MoveType {
+  checkBishopMove(board: Board, from: Cell, to: Cell): MoveType {
     if(from.row === to.row && from.col === to.col) {
       return this.invalidMove;
     }
@@ -310,14 +312,14 @@ export class BoardService {
     return this.invalidMove;
   }
 
-  checkKingMove(from: Cell, to: Cell, game: Game, isAttackCheck: boolean): MoveType {
-    const board = game.currentBoard;
+  checkKingMove(gameTreeNode: GameTreeNode, from: Cell, to: Cell, isAttackCheck: boolean): MoveType {
+    const board = gameTreeNode.board;
     if(from.row === to.row && from.col === to.col) {
       return this.invalidMove;
     }
 
     const oppColor = board.move === 'white' ? 'black' : 'white';
-    if(Math.abs(from.row-to.row) <= 1 && Math.abs(from.col-to.col) <= 1 && !this.isUnderCheckFromColor(game, to, oppColor, isAttackCheck)) {
+    if(Math.abs(from.row-to.row) <= 1 && Math.abs(from.col-to.col) <= 1 && !this.isUnderCheckFromColor(gameTreeNode, to, oppColor, isAttackCheck)) {
       return this.validSimpleMove;
     }
 
@@ -326,11 +328,11 @@ export class BoardService {
     }
 
     //castle
-    if(!this.isUnderCheckFromColor(game, from, oppColor, isAttackCheck) && from.row === to.row) {
+    if(!this.isUnderCheckFromColor(gameTreeNode, from, oppColor, isAttackCheck) && from.row === to.row) {
       if(!from.piece?.isMoved) {
         if(to.col === 6 && !board.cells[from.row][7].piece?.isMoved) {
           for(let i=5; i<=6; i++) {
-            if(board.cells[from.row][i].piece || this.isUnderCheckFromColor(game, board.cells[from.row][i], oppColor, isAttackCheck)) {
+            if(board.cells[from.row][i].piece || this.isUnderCheckFromColor(gameTreeNode, board.cells[from.row][i], oppColor, isAttackCheck)) {
               return this.invalidMove;
             }
           }
@@ -341,7 +343,7 @@ export class BoardService {
             return this.invalidMove;
           }
           for(let i=2; i<=3; i++) {
-            if(board.cells[from.row][i].piece || this.isUnderCheckFromColor(game  , board.cells[from.row][i], oppColor, isAttackCheck)) {
+            if(board.cells[from.row][i].piece || this.isUnderCheckFromColor(gameTreeNode  , board.cells[from.row][i], oppColor, isAttackCheck)) {
               return this.invalidMove;
             }
           }
@@ -352,30 +354,30 @@ export class BoardService {
     return this.invalidMove;
   }
 
-  isUnderCheckFromColor(game: Game, cell: Cell, color: string, isAttackCheck: boolean): boolean {
-    const board = game.currentBoard;
+  isUnderCheckFromColor(gameTreeNode: GameTreeNode, cell: Cell, color: string, isAttackCheck: boolean): boolean {
+    const board = gameTreeNode.board;
     if(isAttackCheck) {
       return false;
     }
     const allPieces: Set<Cell> = color === 'white' ? board.whitePieces : board.blackPieces;
     for(let piece of allPieces) {
-      if(piece.piece && this.canAttack(piece, cell, game)) {
+      if(piece.piece && this.canAttack(gameTreeNode, piece, cell)) {
         return true;
       }
     }
     return false;
   }
 
-  canAttack(from: Cell, to: Cell, game: Game): boolean {
-    return this.checkAllPiece(from, to, game, true).valid;
+  canAttack(gameTreeNode: GameTreeNode, from: Cell, to: Cell): boolean {
+    return this.checkAllPiece(gameTreeNode, from, to, true).valid;
   }
 
-  isKingUnderAttack(game: Game, kingColor: string): boolean {
-    const board = game.currentBoard;
-    const to: Cell = kingColor === 'white' ? board.whiteKingPosition : board.blackKingPosition;
-    const allPieces: Set<Cell> = kingColor === 'white' ? board.blackPieces : board.whitePieces;
+  isKingUnderAttack(gameTreeNode: GameTreeNode, kingColor: string): boolean {
+    const board = gameTreeNode.board;
+    const to: Cell = kingColor === 'white' ? board.blackKingPosition : board.whiteKingPosition;
+    const allPieces: Set<Cell> = kingColor === 'white' ? board.whitePieces : board.blackPieces;
     for(let piece of allPieces) {
-      if(piece.piece && this.canAttack(piece, to, game)) {
+      if(piece.piece && this.canAttack(gameTreeNode, piece, to)) {
         return true;
       }
     }
@@ -411,7 +413,7 @@ export class BoardService {
     }).afterClosed();
   }
 
-  removeOppPiece(cell: Cell, board: Board) {
+  removeOppPiece( board: Board, cell: Cell) {
     if(board.move === 'black') {
       board.whitePieces.delete(cell);
     } else {
@@ -419,7 +421,7 @@ export class BoardService {
     }
   }
 
-  removePiece(cell: Cell, board: Board) {
+  removePiece(board: Board, cell: Cell) {
     if(board.move === 'white') {
       board.whitePieces.delete(cell);
     } else {
@@ -427,7 +429,7 @@ export class BoardService {
     }
   }
 
-  addPiece(cell: Cell, board: Board) {
+  addPiece(board: Board, cell: Cell) {
     if(board.move === 'white') {
       board.whitePieces.add(cell);
     } else {
@@ -526,10 +528,12 @@ export class BoardService {
     piece.url = url;
   }
 
-  getTempBoard(board: Board): Board {
+  getTempTreeNode(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number): GameTreeNode {
+    const board = gameTreeNode.board;
+    const move = gameTreeNode.board.move === 'white' ? 'black' : 'white';
     const newBoard: Board = {
       cells: this.getTempCell(),
-      move: '',
+      move,
       isKingUnderAttack: false,
       whiteKingPosition: this.dummyCell,
       blackKingPosition: this.dummyCell,
@@ -539,7 +543,16 @@ export class BoardService {
       blackCapturedPieces: new Set<Piece>()
     };
     this.copyBoard(board, newBoard);
-    return newBoard;
+    const newTreeNode: GameTreeNode = {
+      board: newBoard,
+      fromRow,
+      fromCol,
+      toRow,
+      toCol,
+      parent: gameTreeNode,
+      char: board.cells[fromRow][fromCol].piece!.char,
+    }
+    return newTreeNode;
   }
 
   getTempCell(): Cell[][] {
