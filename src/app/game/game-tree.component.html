@@ -1,11 +1,11 @@
 <div class="game">
 	<div>
-		<board [board]="currentTreeNode.board" (makeMove)=makeMove($event)></board>
+		<board #board [board]="currentTreeNode.board" (makeMove)=makeMove($event)></board>
 		<div class="controller">
 			<button (click)=goBack()><</button>
 			<button (click)=goNext()>></button>
 			<!-- <button *ngIf="!readOnlyMode" (click)=onSave()>Save</button> -->
 		</div>
 	</div>
-	<move-display [currentTreeNode]="currentTreeNode" (move)=moveTo($event)></move-display>
+	<move-display [currentTreeNode]="currentTreeNode" (move)=moveTo($event) (mouseLeaveEvent)=mouseLeave($event) (mouseEnterEvent)=mouseEnter($event)></move-display>
 </div>

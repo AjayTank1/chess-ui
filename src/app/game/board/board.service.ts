@@ -15,7 +15,7 @@ export class BoardService {
   private validSimpleMove: MoveType = {valid: true, capture: false};
   private dummyCell: Cell = {row: 0, col: 0};
   private size: number = 8;
-
+  
   makeMove(game: Game, fromCell: Cell, toCell: Cell): boolean {
     const board = game.currentBoard;
     let from: Cell = board.cells[fromCell.row][fromCell.col];

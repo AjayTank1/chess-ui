@@ -22,11 +22,23 @@ export class GameService {
     return this.http.get("http://localhost:6060/game");
   }
 
-  makeMove(game: Game, fromRow: number, fromCol: number, toRow: number, toCol: number): boolean {
+  makeMove(game: Game, fromRow: number, fromCol: number, toRow: number, toCol: number, playSound: boolean): boolean {
     const res = this.boardService.makeMove(game, game.currentBoard.cells[fromRow][fromCol], game.currentBoard.cells[toRow][toCol]);
     if(!res) {
       game.currentBoard = game.boards[game.boards.length-1];
+    } else {
+      if(playSound) {
+        this.playAudio();
+      }
     }
     return res;
   }
+
+  playAudio(){
+    let audio = new Audio();
+    audio.src = "../../../assets/audio/alarm.wav";
+    audio.load();
+    audio.play();
+  }
+  
 }

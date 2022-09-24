@@ -10,6 +10,8 @@ export class MoveDisplayComponent implements OnInit {
 
   @Input() currentTreeNode: GameTreeNode;
   @Output() move = new EventEmitter();
+  @Output() mouseEnterEvent = new EventEmitter();
+  @Output() mouseLeaveEvent = new EventEmitter();
 
   constructor() { }
 
@@ -21,4 +23,10 @@ export class MoveDisplayComponent implements OnInit {
     this.move.emit(node);
   }
 
+  mouseEnter(node: GameTreeNode) {
+    this.mouseEnterEvent.emit(node);
+  }
+  mouseLeave(node: GameTreeNode) {
+    this.mouseLeaveEvent.emit(node);
+  }
 }

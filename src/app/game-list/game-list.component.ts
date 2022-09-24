@@ -48,7 +48,7 @@ export class GameListComponent implements OnInit {
       entry = Math.floor(entry/10);
       const fromRow: number = entry%10;
 
-      this.gameService.makeMove(game, fromRow, fromCol, toRow, toCol);
+      this.gameService.makeMove(game, fromRow, fromCol, toRow, toCol, false);
       game.boards.push(game.currentBoard);
     }
     game.currentBoard = game.boards[0];
