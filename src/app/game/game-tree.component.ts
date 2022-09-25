@@ -14,8 +14,6 @@ export class GameTreeComponent implements OnInit {
   @Input() readOnlyMode: boolean;
   @Input() gameTreeNode: GameTreeNode;
   @ViewChild(BoardComponent) board: BoardComponent;
-  private gameLen: number = 0;
-  private actualGameLen = 10;
   private rootGameTreeNode: GameTreeNode;
   
   constructor(
@@ -25,7 +23,6 @@ export class GameTreeComponent implements OnInit {
 
   ngOnInit(): void {
     this.rootGameTreeNode = this.gameTreeNode;
-    this.gameLen = 1;
   }
 
   makeMove($event: any): void {
@@ -46,22 +43,20 @@ export class GameTreeComponent implements OnInit {
   }
 
   goBack(): void {
-    if(this.gameLen > 1) {
-      this.gameTreeNode = this.gameTreeNode.parent!;
-      this.gameLen -= 1;
+    if(this.gameTreeNode.parent) {
+      this.gameTreeNode = this.gameTreeNode.parent;
     }
   }
 
   goNext(): void {
-    if(this.gameLen < this.actualGameLen) {
-      this.gameTreeNode = this.gameTreeNode.nodes![0];
-      this.gameLen += 1;
-    }
+    // if(this.gameLen < this.actualGameLen) {
+    //   this.gameTreeNode = this.gameTreeNode.nodes![0];
+    //   this.gameLen += 1;
+    // }
   }
 
   moveTo($event: any): void {
     this.gameTreeNode = $event;
-    this.gameLen += 1;
     this.showArrows(this.gameTreeNode);
   }
 
