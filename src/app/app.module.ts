@@ -16,7 +16,11 @@ import { Routes, RouterModule } from '@angular/router';
 
 const routes: Routes = [
   {
-    path: 'load',
+    path: 'analyze',
+    component: GameListComponent,
+  },
+  {
+    path: 'practice',
     component: GameListComponent,
   },
   {

@@ -17,7 +17,7 @@ export class BoardComponent implements OnInit {
   private mouseDown = new Subject<Cell>();
   private mouseUp = new Subject<Cell>();
   private destroyed = new Subject<void>();
-  @ViewChild('canvas') canvas: ElementRef<HTMLCanvasElement>;
+  @ViewChild('canvas', {static: false}) canvas: ElementRef<HTMLCanvasElement>;
   public context: CanvasRenderingContext2D;
 
   @Output() makeMove = new EventEmitter();
