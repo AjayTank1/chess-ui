@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Cell, Piece, Board, MoveType, GameTreeNode } from './../interface';
-import { of } from 'rxjs';
+import { of, Subject, ReplaySubject } from 'rxjs';
 import { MatDialog, MatDialogConfig, MatDialogRef } from '@angular/material/dialog';
 import { ModalComponent } from './../modal/modal.component';
 
@@ -16,7 +16,9 @@ export class BoardService {
   private dummyCell: Cell = {row: 0, col: 0};
   private size: number = 8;
   
-  makeMove(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number): boolean {
+  makeMove(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number): Subject<GameTreeNode> {
+    //TODO: make this method async properly, return valid info.
+    const subject: Subject<GameTreeNode> = new ReplaySubject<GameTreeNode>(1);
     const board = gameTreeNode.board;
     let from: Cell = board.cells[fromRow][fromCol];
     let to: Cell = board.cells[toRow][toCol];
@@ -24,13 +26,12 @@ export class BoardService {
     const moveType: MoveType = this.isMovePossible(gameTreeNode, from, to);
     
     if(!moveType.valid) {
-      return true;
+      subject.next(gameTreeNode);
+      subject.complete();
+      return subject;
     }
 
     const newTreeNode = this.getTempTreeNode(gameTreeNode, fromRow, fromCol, toRow, toCol);
-    if(!gameTreeNode.nodes) {
-      gameTreeNode.nodes = [];
-    }
     gameTreeNode.nodes.push(newTreeNode);
     
     to = newTreeNode.board.cells[to.row][to.col];
@@ -38,11 +39,11 @@ export class BoardService {
 
     //make move on new board.  
     if(moveType.capture) {
-      this.removeOppPiece(newTreeNode.board, to);
+      this.removeOppPiece(newTreeNode, to);
     }
 
-    this.removePiece(newTreeNode.board, from);
-    this.addPiece(newTreeNode.board, to);
+    this.removePiece(newTreeNode, from);
+    this.addPiece(newTreeNode, to);
 
     const piece: Piece = from.piece!;
     from.piece = undefined;
@@ -50,23 +51,23 @@ export class BoardService {
     piece.isMoved = true;
 
     if(moveType.type === 'shortCastle') {
-      this.removePiece(newTreeNode.board, newTreeNode.board.cells[from.row][7]);
-      this.addPiece(newTreeNode.board, newTreeNode.board.cells[from.row][5]);
+      this.removePiece(newTreeNode, newTreeNode.board.cells[from.row][7]);
+      this.addPiece(newTreeNode, newTreeNode.board.cells[from.row][5]);
       newTreeNode.board.cells[from.row][5].piece = newTreeNode.board.cells[from.row][7].piece;
       newTreeNode.board.cells[from.row][7].piece = undefined;
       newTreeNode.board.cells[from.row][5].piece!.isMoved = true;
     } else if(moveType.type === 'longCastle') {
-      this.removePiece(newTreeNode.board, newTreeNode.board.cells[from.row][0]);
-      this.addPiece(newTreeNode.board, newTreeNode.board.cells[from.row][3]);
+      this.removePiece(newTreeNode, newTreeNode.board.cells[from.row][0]);
+      this.addPiece(newTreeNode, newTreeNode.board.cells[from.row][3]);
       newTreeNode.board.cells[from.row][3].piece = newTreeNode.board.cells[from.row][0].piece;
       newTreeNode.board.cells[from.row][0].piece = undefined;
       newTreeNode.board.cells[from.row][3].piece!.isMoved = true;
     } else if(moveType.type === 'enPassant') {
       if(to.piece.color === 'white') {
-        this.removePiece(newTreeNode.board, newTreeNode.board.cells[to.row-1][to.col]);
+        this.removePiece(newTreeNode, newTreeNode.board.cells[to.row-1][to.col]);
         newTreeNode.board.cells[to.row-1][to.col].piece = undefined;
       } else if(to.piece.color === 'black') {
-        this.removePiece(newTreeNode.board, newTreeNode.board.cells[to.row+1][to.col]);
+        this.removePiece(newTreeNode, newTreeNode.board.cells[to.row+1][to.col]);
         newTreeNode.board.cells[to.row+1][to.col].piece = undefined;
       }
     }
@@ -79,8 +80,11 @@ export class BoardService {
       }
     }
     
-    if(this.isKingUnderAttack(gameTreeNode, newTreeNode.board.move)) {
-      return false;
+    if(this.isKingUnderAttack(gameTreeNode)) {
+      gameTreeNode.nodes!.pop();
+      subject.next(gameTreeNode);
+      subject.complete();
+      return subject;
     }
     
     this.checkForPromotion(to)
@@ -88,9 +92,11 @@ export class BoardService {
       if(isPromoted) {
         to.piece = this.getPromotedPiece(isPromoted.piece, to.piece!.color);
       }
-      
+      subject.next(gameTreeNode.nodes[gameTreeNode.nodes.length-1]);
+      subject.complete();
     });
-    return true;
+
+    return subject;
   }
 
   isMovePossible(gameTreeNode: GameTreeNode, from: Cell, to: Cell): MoveType {
@@ -101,7 +107,7 @@ export class BoardService {
     }
 
     //alternate color move
-    if(from.piece.color !== board.move) {
+    if(from.piece.color !== gameTreeNode.color) {
       return this.invalidMove;
     }
 
@@ -318,7 +324,7 @@ export class BoardService {
       return this.invalidMove;
     }
 
-    const oppColor = board.move === 'white' ? 'black' : 'white';
+    const oppColor = gameTreeNode.color === 'white' ? 'black' : 'white';
     if(Math.abs(from.row-to.row) <= 1 && Math.abs(from.col-to.col) <= 1 && !this.isUnderCheckFromColor(gameTreeNode, to, oppColor, isAttackCheck)) {
       return this.validSimpleMove;
     }
@@ -372,8 +378,9 @@ export class BoardService {
     return this.checkAllPiece(gameTreeNode, from, to, true).valid;
   }
 
-  isKingUnderAttack(gameTreeNode: GameTreeNode, kingColor: string): boolean {
+  isKingUnderAttack(gameTreeNode: GameTreeNode): boolean {
     const board = gameTreeNode.board;
+    const kingColor = gameTreeNode.color;
     const to: Cell = kingColor === 'white' ? board.blackKingPosition : board.whiteKingPosition;
     const allPieces: Set<Cell> = kingColor === 'white' ? board.whitePieces : board.blackPieces;
     for(let piece of allPieces) {
@@ -413,27 +420,27 @@ export class BoardService {
     }).afterClosed();
   }
 
-  removeOppPiece( board: Board, cell: Cell) {
-    if(board.move === 'black') {
-      board.whitePieces.delete(cell);
+  removeOppPiece(gameTreeNode: GameTreeNode, cell: Cell) {
+    if(gameTreeNode.color === 'black') {
+      gameTreeNode.board.whitePieces.delete(cell);
     } else {
-      board.blackPieces.delete(cell);
+      gameTreeNode.board.blackPieces.delete(cell);
     }
   }
 
-  removePiece(board: Board, cell: Cell) {
-    if(board.move === 'white') {
-      board.whitePieces.delete(cell);
+  removePiece(gameTreeNode: GameTreeNode, cell: Cell) {
+    if(gameTreeNode.color === 'white') {
+      gameTreeNode.board.whitePieces.delete(cell);
     } else {
-      board.blackPieces.delete(cell);
+      gameTreeNode.board.blackPieces.delete(cell);
     }
   }
 
-  addPiece(board: Board, cell: Cell) {
-    if(board.move === 'white') {
-      board.whitePieces.add(cell);
+  addPiece(gameTreeNode: GameTreeNode, cell: Cell) {
+    if(gameTreeNode.color === 'white') {
+      gameTreeNode.board.whitePieces.add(cell);
     } else {
-      board.blackPieces.add(cell);
+      gameTreeNode.board.blackPieces.add(cell);
     }
   }
 
@@ -530,10 +537,9 @@ export class BoardService {
 
   getTempTreeNode(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number): GameTreeNode {
     const board = gameTreeNode.board;
-    const move = gameTreeNode.board.move === 'white' ? 'black' : 'white';
+    const color = gameTreeNode.color === 'white' ? 'black' : 'white';
     const newBoard: Board = {
       cells: this.getTempCell(),
-      move,
       isKingUnderAttack: false,
       whiteKingPosition: this.dummyCell,
       blackKingPosition: this.dummyCell,
@@ -551,6 +557,8 @@ export class BoardService {
       toCol,
       parent: gameTreeNode,
       char: board.cells[fromRow][fromCol].piece!.char,
+      nodes: [],
+      color
     }
     return newTreeNode;
   }
@@ -589,7 +597,6 @@ export class BoardService {
     to.whiteCapturedPieces = from.whiteCapturedPieces;
     to.blackCapturedPieces = from.blackCapturedPieces;
 
-    to.move = from.move;
     to.isKingUnderAttack = from.isKingUnderAttack;
     to.whiteKingPosition = to.cells[from.whiteKingPosition.row][from.whiteKingPosition.col];
     to.blackKingPosition = to.cells[from.blackKingPosition.row][from.blackKingPosition.col];
@@ -627,7 +634,7 @@ export class BoardService {
       cells.push(row);
     }
     
-    return {cells, move: 'white', whitePieces, blackPieces, whiteCapturedPieces, blackCapturedPieces, whiteKingPosition, blackKingPosition, isKingUnderAttack: false};
+    return {cells, whitePieces, blackPieces, whiteCapturedPieces, blackCapturedPieces, whiteKingPosition, blackKingPosition, isKingUnderAttack: false};
   }
 
 }

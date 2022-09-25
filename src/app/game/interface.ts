@@ -1,16 +1,17 @@
-export interface GameTreeNode extends GameMoveTreenode{
+export interface GameTreeNode extends GameMoveTreeNode{
 	board: Board;
-	nodes?: GameTreeNode[];
+	nodes: GameTreeNode[];
 	char: string;
+	color: string;
 	parent?: GameTreeNode;
 }
 
-export interface GameMoveTreenode {
+export interface GameMoveTreeNode {
 	fromRow: number;
 	fromCol: number;
 	toRow: number;
 	toCol: number;
-	nodes?: GameMoveTreenode[]
+	nodes: GameMoveTreeNode[],
 }
 
 export interface Game {
@@ -21,7 +22,6 @@ export interface Game {
 
 export interface Board {
 	cells: Cell[][];
-	move: string;
 	isKingUnderAttack: boolean;
 	whiteKingPosition: Cell;
 	blackKingPosition: Cell;

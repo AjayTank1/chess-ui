@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs'
+import { Observable, tap } from 'rxjs'
 import { BoardService } from './board/board.service';
 import { GameTreeNode } from './interface';
 
@@ -22,16 +22,14 @@ export class GameService {
     return this.http.get("http://localhost:6060/game");
   }
 
-  makeMove(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number, playSound: boolean): boolean {
-    const res = this.boardService.makeMove(gameTreeNode,  fromRow, fromCol, toRow, toCol);
-    if(!res) {
-      gameTreeNode.nodes!.pop();
-    } else {
-      if(playSound) {
-        this.playAudio();
+  makeMove(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number, playSound: boolean): Observable<GameTreeNode> {
+    return this.boardService.makeMove(gameTreeNode,  fromRow, fromCol, toRow, toCol).pipe(tap(res => {
+      if(gameTreeNode !== res) {
+        if(playSound) {
+          this.playAudio();
+        }
       }
-    }
-    return res;
+    }));
   }
 
   playAudio(){

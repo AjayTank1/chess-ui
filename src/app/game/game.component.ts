@@ -41,7 +41,7 @@ export class GameComponent implements OnInit {
 
   makeMove($event: any) {
     if(!this.readOnlyMode) {
-      const res = this.gameService.makeMove(this.game, $event.from.row, $event.from.col, $event.to.row, $event.to.col, false);
+      const res = true;//this.gameService.makeMove(this.game, $event.from.row, $event.from.col, $event.to.row, $event.to.col, false);
       if(res) {
         if(this.gameLen === this.game.boards.length) {
           this.game.boards.push(this.game.currentBoard);

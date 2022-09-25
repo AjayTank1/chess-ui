@@ -28,6 +28,7 @@ export class BoardComponent implements OnInit {
   ngOnInit(): void {
     this.mouseUp.pipe(takeUntil(this.destroyed), withLatestFrom(this.mouseDown))
     .subscribe(([to, from]) => {
+        console.log({to, from});
         this.makeMove.emit({to, from});
     });
   }
@@ -73,7 +74,7 @@ export class BoardComponent implements OnInit {
     ctx.lineTo(cord[6][0], cord[6][1]);
     ctx.closePath();
     ctx.fill();
-    
+
     ctx.beginPath();
     ctx.moveTo(cord[0][0], cord[0][1]);
     ctx.lineTo(cord[1][0], cord[1][1]);
