@@ -1,6 +1,7 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, ViewChild, ElementRef} from '@angular/core';
 import { BoardService } from './board/board.service';
-import { Board, Game, Event } from './interface';
+import { BoardComponent } from './board/board.component';
+import { Board, Game, Event, GameTreeNode, GameMoveTreeNode } from './interface';
 import { GameService } from './game.service';
 
 @Component({
@@ -11,73 +12,135 @@ import { GameService } from './game.service';
 export class GameComponent implements OnInit {
 
   @Input() readOnlyMode: boolean;
-  private gameLen: number = 0;
-  private actualGameLen = 0;
-  @Input() game: Game;
-
+  @Input() gameTreeNode: GameTreeNode;
+  @ViewChild(BoardComponent) board: BoardComponent;
+  private rootGameTreeNode: GameTreeNode;
+  
   constructor(
     private boardService: BoardService,
     private gameService: GameService
   ) { }
 
   ngOnInit(): void {
-    if(this.readOnlyMode) {
-      if(!this.game) {
-        throw Error("game moves has to be provided");
-      }
-      this.actualGameLen = this.game.boards.length;
-      this.gameLen = 1;
-    } else {
-      this.game = {
-        boards: [],
-        currentBoard: this.boardService.createNewBoard(),
-        moveHistory: []
-      }
-      this.game.boards.push(this.game.currentBoard);
-      this.gameLen += 1;
-      this.actualGameLen = this.gameLen;
-    }
+    this.rootGameTreeNode = this.gameTreeNode;
   }
 
-  makeMove($event: any) {
-    if(!this.readOnlyMode) {
-      const res = true;//this.gameService.makeMove(this.game, $event.from.row, $event.from.col, $event.to.row, $event.to.col, false);
-      if(res) {
-        if(this.gameLen === this.game.boards.length) {
-          this.game.boards.push(this.game.currentBoard);
-        } else if(this.gameLen < this.game.boards.length) {
-          this.game.boards[this.gameLen] = this.game.currentBoard; 
+  makeMove($event: any): void {
+    if(this.readOnlyMode) {
+      return;
+    }
+    if(this.gameTreeNode.nodes) {
+      for(let node of this.gameTreeNode.nodes) {
+        if(node.fromRow === $event.from.row && node.fromCol === $event.from.col && node.toRow === $event.to.row && node.toCol === $event.to.col) {
+          this.gameTreeNode = node;
+          return;
         }
-        this.gameLen +=1;
-        this.actualGameLen = this.gameLen;
       }
     }
+    this.gameService.makeMove(this.gameTreeNode, $event.from.row, $event.from.col, $event.to.row, $event.to.col, false).subscribe(res => {
+      this.gameTreeNode = res;
+    });
   }
 
   goBack(): void {
-    if(this.gameLen > 1) {
-      this.game.currentBoard = this.game.boards[this.gameLen-2];
-      this.gameLen -= 1;
+    if(this.gameTreeNode.parent) {
+      this.gameTreeNode = this.gameTreeNode.parent;
     }
   }
 
   goNext(): void {
-    if(this.gameLen < this.actualGameLen) {
-      this.game.currentBoard = this.game.boards[this.gameLen];
-      this.gameLen += 1;
+    // if(this.gameLen < this.actualGameLen) {
+    //   this.gameTreeNode = this.gameTreeNode.nodes![0];
+    //   this.gameLen += 1;
+    // }
+  }
+
+  moveTo($event: any): void {
+    this.gameTreeNode = $event;
+    this.showArrows(this.gameTreeNode);
+  }
+
+  showArrows(gameTreeNode: GameTreeNode): void {
+    this.board.clearBoard();
+    if(gameTreeNode.nodes) {
+      for(let node of gameTreeNode.nodes) {
+        this.drawArrowForCell(node.fromRow, node.fromCol, node.toRow, node.toCol, 'green');
+      }
     }
   }
 
+  mouseEnter(node: GameTreeNode) {
+    this.drawArrowForCell(node.fromRow, node.fromCol, node.toRow, node.toCol, 'yellow');
+  }
+
+  mouseLeave(node: GameTreeNode) {
+    this.drawArrowForCell(node.fromRow, node.fromCol, node.toRow, node.toCol, 'green');
+  }
+
+  drawArrowForCell(fromRow: number, fromCol: number, toRow: number, toCol: number, color: string): void {
+    fromRow = 7 - fromRow;
+    toRow = 7 - toRow;
+    const cellSize = 300/8;
+
+    const len = Math.sqrt((fromRow-toRow)*(fromRow-toRow) + (fromCol - toCol)*(fromCol - toCol));
+    
+    const cord = this.getCordinate(len*cellSize - 0.2*cellSize, (fromCol+0.5)*cellSize,(fromRow+0.5)*cellSize , Math.atan2(-fromRow+toRow, fromCol-toCol) - Math.PI/2);
+    this.board.drawArrowForCell(cord, color);
+  }
+
+  getCordinate(y: number, displacementX: number, displacementY: number, rotate: number): number[][] {
+
+    const a: number = 4;
+    const b:number = 3*a;
+
+    const x1 = [a, 0];
+    const x2 = [a, y-(b/2)];
+    const x3 = [Math.sqrt(3/4)*b, y-(b/2)];
+    const x4 = [0, y+b];
+    const x5 = [-x3[0], x3[1]];
+    const x6 = [-x2[0], x2[1]];
+    const x7 = [-x1[0], x1[1]];
+
+    const cord = [x1,x2,x3,x4,x5,x6,x7];
+    return this.transform(cord, displacementX, displacementY, rotate);
+  }
+
+  transform(cord: number[][], displacementX: number, displacementY: number, rotate: number): number[][] { 
+    for(let c of cord) {
+      const m = c[0]*Math.cos(rotate) + c[1]*Math.sin(rotate);
+      const n = -c[0]*Math.sin(rotate) + c[1]*Math.cos(rotate);
+      c[0] = m;
+      c[1] = n;
+    }
+    for(let c of cord) {
+      c[0] += displacementX;
+      c[1] += displacementY;
+    }
+    for(let c of cord) {
+      c[1] /= 2;
+    }
+    return cord;
+  }
+
   onSave(): void {
-    const payload = this.game.moveHistory.map(move => {
-      let m = 0;
-      m = m*10 + move.from.row;
-      m = m*10 + move.from.col;
-      m = m*10 + move.to.row;
-      m = m*10 + move.to.col;
-      return {move: m} as Event
-    })
-    //this.gameService.saveGame(payload).subscribe(x=> console.log(x));
+    const payload: GameMoveTreeNode = this.convertGameTreeToGameMoveTree(this.rootGameTreeNode);
+    this.gameService.saveGame(payload).subscribe(x=> console.log(x));
+  }
+
+  convertGameTreeToGameMoveTree(gameTreeNode: GameTreeNode): GameMoveTreeNode {
+    //TODO: save only new variation
+    const gameMoveTreeNodes: GameMoveTreeNode[] = [];
+    for(let node of gameTreeNode.nodes) {
+      gameMoveTreeNodes.push(this.convertGameTreeToGameMoveTree(node));
+    }
+    const gameMoveTreeNode: GameMoveTreeNode = {
+      fromRow: gameTreeNode.fromRow,
+      fromCol: gameTreeNode.fromCol,
+      toRow: gameTreeNode.toRow,
+      toCol: gameTreeNode.toCol,
+      nodes: gameMoveTreeNodes,
+    }
+    return gameMoveTreeNode;
   }
 
 }
