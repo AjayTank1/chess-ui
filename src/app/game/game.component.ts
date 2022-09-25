@@ -84,11 +84,15 @@ export class GameComponent implements OnInit {
   }
 
   mouseEnter(node: GameTreeNode) {
-    this.drawArrowForCell(node.fromRow, node.fromCol, node.toRow, node.toCol, 'yellow');
+    if(this.isArrowEnabled) {
+      this.drawArrowForCell(node.fromRow, node.fromCol, node.toRow, node.toCol, 'yellow');
+    }
   }
 
   mouseLeave(node: GameTreeNode) {
-    this.drawArrowForCell(node.fromRow, node.fromCol, node.toRow, node.toCol, 'green');
+    if(this.isArrowEnabled) {
+      this.drawArrowForCell(node.fromRow, node.fromCol, node.toRow, node.toCol, 'green');
+    }
   }
 
   drawArrowForCell(fromRow: number, fromCol: number, toRow: number, toCol: number, color: string): void {
