@@ -77,7 +77,7 @@ export class GameComponent implements OnInit {
       m = m*10 + move.to.col;
       return {move: m} as Event
     })
-    this.gameService.saveGame(payload).subscribe(x=> console.log(x));
+    //this.gameService.saveGame(payload).subscribe(x=> console.log(x));
   }
 
 }

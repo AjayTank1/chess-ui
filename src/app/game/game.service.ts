@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs'
 import { BoardService } from './board/board.service';
-import { GameTreeNode } from './interface';
+import { GameTreeNode, GameMoveTreeNode } from './interface';
 
 @Injectable({
   providedIn: 'root'
@@ -14,7 +14,7 @@ export class GameService {
     private boardService: BoardService,
   ) { }
 
-  saveGame(data: any): Observable<any> {
+  saveGame(data: GameMoveTreeNode): Observable<any> {
     return this.http.post("http://localhost:6060/game", data);
   }
 

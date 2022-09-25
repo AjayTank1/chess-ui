@@ -1,7 +1,7 @@
 import { Component, OnInit, Input, ViewChild, ElementRef} from '@angular/core';
 import { BoardService } from './board/board.service';
 import { BoardComponent } from './board/board.component';
-import { Board, Game, Event, GameTreeNode } from './interface';
+import { Board, Game, Event, GameTreeNode, GameMoveTreeNode } from './interface';
 import { GameService } from './game.service';
 
 @Component({
@@ -16,6 +16,7 @@ export class GameTreeComponent implements OnInit {
   @ViewChild(BoardComponent) board: BoardComponent;
   private gameLen: number = 0;
   private actualGameLen = 10;
+  private rootGameTreeNode: GameTreeNode;
   
   constructor(
     private boardService: BoardService,
@@ -23,7 +24,7 @@ export class GameTreeComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.gameTreeNode = this.gameTreeNode;
+    this.rootGameTreeNode = this.gameTreeNode;
     this.gameLen = 1;
   }
 
@@ -127,7 +128,24 @@ export class GameTreeComponent implements OnInit {
   }
 
   onSave(): void {
-    this.gameService.saveGame({}).subscribe(x=> console.log(x));
+    const payload: GameMoveTreeNode = this.convertGameTreeToGameMoveTree(this.rootGameTreeNode);
+    this.gameService.saveGame(payload).subscribe(x=> console.log(x));
+  }
+
+  convertGameTreeToGameMoveTree(gameTreeNode: GameTreeNode): GameMoveTreeNode {
+    //TODO: save only new variation
+    const gameMoveTreeNodes: GameMoveTreeNode[] = [];
+    for(let node of gameTreeNode.nodes) {
+      gameMoveTreeNodes.push(this.convertGameTreeToGameMoveTree(node));
+    }
+    const gameMoveTreeNode: GameMoveTreeNode = {
+      fromRow: gameTreeNode.fromRow,
+      fromCol: gameTreeNode.fromCol,
+      toRow: gameTreeNode.toRow,
+      toCol: gameTreeNode.toCol,
+      nodes: gameMoveTreeNodes,
+    }
+    return gameMoveTreeNode;
   }
 
 }
