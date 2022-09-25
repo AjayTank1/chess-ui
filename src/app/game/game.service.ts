@@ -22,8 +22,8 @@ export class GameService {
     return this.http.get("http://localhost:6060/game");
   }
 
-  makeMove(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number, playSound: boolean): Observable<GameTreeNode> {
-    return this.boardService.makeMove(gameTreeNode,  fromRow, fromCol, toRow, toCol).pipe(tap(res => {
+  makeMove(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number, playSound: boolean, promotionTo?: string): Observable<GameTreeNode> {
+    return this.boardService.makeMove(gameTreeNode,  fromRow, fromCol, toRow, toCol, promotionTo).pipe(tap(res => {
       if(gameTreeNode !== res) {
         if(playSound) {
           this.playAudio();

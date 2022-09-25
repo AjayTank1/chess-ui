@@ -159,6 +159,7 @@ export class GameComponent implements OnInit {
       nodes: gameMoveTreeNodes,
       tags: gameTreeNode.tags,
       desc: gameTreeNode.desc,
+      promotionTo: gameTreeNode.promotionTo,
     }
     return gameMoveTreeNode;
   }

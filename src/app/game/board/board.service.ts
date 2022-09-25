@@ -16,7 +16,7 @@ export class BoardService {
   private dummyCell: Cell = {row: 0, col: 0};
   private size: number = 8;
   
-  makeMove(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number): Subject<GameTreeNode> {
+  makeMove(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number, promotionTo?: string): Subject<GameTreeNode> {
     //TODO: make this method async properly, return valid info.
     const subject: Subject<GameTreeNode> = new ReplaySubject<GameTreeNode>(1);
     const board = gameTreeNode.board;
@@ -87,10 +87,11 @@ export class BoardService {
       return subject;
     }
     
-    this.checkForPromotion(to)
-    .subscribe( (isPromoted: any) => {
-      if(isPromoted) {
-        to.piece = this.getPromotedPiece(isPromoted.piece, to.piece!.color);
+    this.checkForPromotion(to, promotionTo)
+    .subscribe( (promotionTo: string) => {
+      if(promotionTo) {
+        newTreeNode.promotionTo = promotionTo;
+        to.piece = this.getPromotedPiece(promotionTo, to.piece!.color);
       }
       subject.next(gameTreeNode.nodes[gameTreeNode.nodes.length-1]);
       subject.complete();
@@ -399,12 +400,20 @@ export class BoardService {
     return res;
   }
 
-  checkForPromotion(to: Cell) {
+  checkForPromotion(to: Cell, promotionTo?: string) {
     if(to.piece?.char === 'pawn') {
       if(to.piece.color === 'white' && to.row === 7) {
-        return this.openModal();
+        if(promotionTo) {
+          return of(promotionTo);
+        } else {
+          return this.openModal();
+        }
       } else if(to.piece.color === 'black' && to.row === 0) {
-        return this.openModal();
+        if(promotionTo) {
+          return of(promotionTo);
+        } else {
+          return this.openModal();
+        }
       }
     }
     return of(false);

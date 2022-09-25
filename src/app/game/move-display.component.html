@@ -2,6 +2,7 @@
 	<div *ngFor="let node of currentTreeNode.nodes" (click)=moveTo(node) (mouseenter) ="mouseEnter(node)"  (mouseleave) ="mouseLeave(node)">
 		<div class="oneMove">
 			{{node.fromRow}} {{node.fromCol}} to {{node.toRow}} {{node.toCol}}
+			{{node.tags}}
 		</div>
 	</div>
 </div>

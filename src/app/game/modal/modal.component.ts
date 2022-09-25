@@ -16,7 +16,7 @@ export class ModalComponent implements OnInit {
   }
 
   close(piece: string): void {
-    this.dialogRef.close({piece});
+    this.dialogRef.close(piece);
   }
 
 }

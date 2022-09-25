@@ -14,6 +14,7 @@ export interface GameMoveTreeNode {
 	nodes: GameMoveTreeNode[],
 	tags: string[],
 	desc: string,
+	promotionTo?: string
 }
 
 export interface Game {

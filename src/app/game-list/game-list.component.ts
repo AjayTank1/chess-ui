@@ -60,7 +60,7 @@ export class GameListComponent implements OnInit {
     gameTreeNode.desc = gameMoveTreeNode.desc;
     for(let node of gameMoveTreeNode.nodes) {
       //TODO: pass piece promo info
-      const res: Observable<GameTreeNode> = this.gameService.makeMove(gameTreeNode, node.fromRow, node.fromCol, node.toRow, node.toCol, false);
+      const res: Observable<GameTreeNode> = this.gameService.makeMove(gameTreeNode, node.fromRow, node.fromCol, node.toRow, node.toCol, false, node.promotionTo);
       this.startMovingPieces(gameTreeNode.nodes[gameTreeNode.nodes.length-1], node);
     }
   }
