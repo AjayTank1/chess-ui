@@ -13,6 +13,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { GameService } from './game/game.service';
 import { GameListComponent } from './game-list/game-list.component';
 import { Routes, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 
 const routes: Routes = [
   {
@@ -46,6 +47,7 @@ const routes: Routes = [
     NoopAnimationsModule,
     HttpClientModule,
     RouterModule.forRoot(routes),
+    FormsModule
   ],
   providers: [BoardService, GameService],
   bootstrap: [AppComponent]

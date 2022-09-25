@@ -15,6 +15,7 @@ export class GameComponent implements OnInit {
   @Input() gameTreeNode: GameTreeNode;
   @ViewChild(BoardComponent) board: BoardComponent;
   private rootGameTreeNode: GameTreeNode;
+  public isArrowEnabled: boolean = true;
   
   constructor(
     private boardService: BoardService,
@@ -22,7 +23,10 @@ export class GameComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
-    this.rootGameTreeNode = this.gameTreeNode;
+  }
+
+  ngAfterViewInit(): void {
+    this.moveTo(this.gameTreeNode);
   }
 
   makeMove($event: any): void {
@@ -32,38 +36,45 @@ export class GameComponent implements OnInit {
     if(this.gameTreeNode.nodes) {
       for(let node of this.gameTreeNode.nodes) {
         if(node.fromRow === $event.fromRow && node.fromCol === $event.fromCol && node.toRow === $event.toRow && node.toCol === $event.toCol) {
-          this.gameTreeNode = node;
+          this.moveTo(node);
           return;
         }
       }
     }
     this.gameService.makeMove(this.gameTreeNode, $event.fromRow, $event.fromCol, $event.toRow, $event.toCol, false).subscribe(res => {
-      this.gameTreeNode = res;
+      this.moveTo(res);
     });
   }
 
   goBack(): void {
     if(this.gameTreeNode.parent) {
-      this.gameTreeNode = this.gameTreeNode.parent;
+      this.moveTo(this.gameTreeNode.parent);
     }
   }
 
   goNext(): void {
-    // if(this.gameLen < this.actualGameLen) {
-    //   this.gameTreeNode = this.gameTreeNode.nodes![0];
-    //   this.gameLen += 1;
-    // }
+    //TODO: implement
   }
 
-  moveTo($event: any): void {
+  moveTo($event: GameTreeNode): void {
     this.gameTreeNode = $event;
-    this.showArrows(this.gameTreeNode);
+    if(this.isArrowEnabled) {
+      this.showArrows();
+    }
   }
 
-  showArrows(gameTreeNode: GameTreeNode): void {
+  chechArrows(): void {
+    if(this.isArrowEnabled) {
+      this.showArrows();
+    } else {
+      this.board.clearBoard();
+    }
+  }
+
+  showArrows(): void {
     this.board.clearBoard();
-    if(gameTreeNode.nodes) {
-      for(let node of gameTreeNode.nodes) {
+    if(this.gameTreeNode.nodes) {
+      for(let node of this.gameTreeNode.nodes) {
         this.drawArrowForCell(node.fromRow, node.fromCol, node.toRow, node.toCol, 'green');
       }
     }
