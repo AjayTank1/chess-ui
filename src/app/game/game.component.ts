@@ -23,6 +23,7 @@ export class GameComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    this.rootGameTreeNode = this.gameTreeNode;
   }
 
   ngAfterViewInit(): void {
