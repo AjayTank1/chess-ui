@@ -126,4 +126,8 @@ export class GameTreeComponent implements OnInit {
     return cord;
   }
 
+  onSave(): void {
+    this.gameService.saveGame({}).subscribe(x=> console.log(x));
+  }
+
 }

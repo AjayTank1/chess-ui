@@ -80,7 +80,7 @@ export class BoardService {
       }
     }
     
-    if(this.isKingUnderAttack(gameTreeNode)) {
+    if(this.isKingUnderAttack(newTreeNode)) {
       gameTreeNode.nodes!.pop();
       subject.next(gameTreeNode);
       subject.complete();
@@ -365,7 +365,7 @@ export class BoardService {
     if(isAttackCheck) {
       return false;
     }
-    const allPieces: Set<Cell> = color === 'white' ? board.whitePieces : board.blackPieces;
+    const allPieces: Set<Cell> = color === 'black' ? board.blackPieces : board.whitePieces;
     for(let piece of allPieces) {
       if(piece.piece && this.canAttack(gameTreeNode, piece, cell)) {
         return true;
