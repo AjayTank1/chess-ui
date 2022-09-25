@@ -31,13 +31,13 @@ export class GameComponent implements OnInit {
     }
     if(this.gameTreeNode.nodes) {
       for(let node of this.gameTreeNode.nodes) {
-        if(node.fromRow === $event.from.row && node.fromCol === $event.from.col && node.toRow === $event.to.row && node.toCol === $event.to.col) {
+        if(node.fromRow === $event.fromRow && node.fromCol === $event.fromCol && node.toRow === $event.toRow && node.toCol === $event.toCol) {
           this.gameTreeNode = node;
           return;
         }
       }
     }
-    this.gameService.makeMove(this.gameTreeNode, $event.from.row, $event.from.col, $event.to.row, $event.to.col, false).subscribe(res => {
+    this.gameService.makeMove(this.gameTreeNode, $event.fromRow, $event.fromCol, $event.toRow, $event.toCol, false).subscribe(res => {
       this.gameTreeNode = res;
     });
   }

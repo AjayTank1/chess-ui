@@ -22,13 +22,4 @@ export class CellComponent implements OnInit {
   ngOnInit(): void {
     this.dark = (this.cell.row + this.cell.col)%2 == 0;
   }
-
-  @HostListener("mouseup") onClick(){
-    this.mouseUp.emit({row:this.cell.row, col:this.cell.col});
-  }
-
-  @HostListener("mousedown") onUnClick(){
-    this.mouseDown.emit({row:this.cell.row, col:this.cell.col});
-  }
-
 }

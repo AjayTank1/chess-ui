@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter, ElementRef, ViewChild  } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { Cell, Piece, Board, MoveType } from './../interface';
 import { Subject, of } from 'rxjs';
 import { map, withLatestFrom, takeUntil } from 'rxjs/operators';
@@ -14,35 +14,33 @@ export class BoardComponent implements OnInit {
 
   @Input() public board: Board;
 
-  private mouseDown = new Subject<Cell>();
-  private mouseUp = new Subject<Cell>();
+  private size: number = 500/8;
+  private mouseDown = new Subject<number[]>();
+  private mouseUp = new Subject<number[]>();
   private destroyed = new Subject<void>();
   @ViewChild('canvas', {static: false}) canvas: ElementRef<HTMLCanvasElement>;
   public context: CanvasRenderingContext2D;
 
   @Output() makeMove = new EventEmitter();
 
-  constructor() {  
+  constructor(private ref: ElementRef) {  
   }
 
   ngOnInit(): void {
     this.mouseUp.pipe(takeUntil(this.destroyed), withLatestFrom(this.mouseDown))
     .subscribe(([to, from]) => {
         console.log({to, from});
-        this.makeMove.emit({to, from});
+        this.makeMove.emit({
+          fromRow: from[0],
+          fromCol: from[1],
+          toRow: to[0],
+          toCol: to[1],
+        });
     });
   }
 
   ngAfterViewInit(): void {
     this.context = this.canvas.nativeElement.getContext('2d')!;
-  }
-
-  onMouseUp($event: any) {
-    this.mouseUp.next($event);
-  }
-
-  onMouseDown($event: any) {
-    this.mouseDown.next($event);
   }
 
   ngOnDestroy(){
@@ -87,6 +85,14 @@ export class BoardComponent implements OnInit {
     ctx.fillStyle = color;
     ctx.fill();
 
+  }
+
+  onMouseUp($event: any) {
+    this.mouseUp.next([7 - Math.floor($event.offsetY/this.size), Math.floor($event.offsetX/this.size)]);
+  }
+
+  onMouseDown($event: any) {
+    this.mouseDown.next([7 - Math.floor($event.offsetY/this.size), Math.floor($event.offsetX/this.size)]);
   }
 
 }

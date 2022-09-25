@@ -2,9 +2,9 @@
 	<ng-container *ngFor="let row of board.cells; let i = index" >
 		<div class="row">
 			<ng-container *ngFor="let cell of row">
-				<cell [cell]=cell (mouseUp)=onMouseUp($event) (mouseDown)=onMouseDown($event)></cell>
+				<cell [cell]=cell></cell>
 			</ng-container>
 		</div>
 	</ng-container>
 </div>
-<canvas #canvas class="canvas"></canvas>
+<canvas #canvas class="canvas" (mouseup)=onMouseUp($event) (mousedown)=onMouseDown($event)></canvas>
