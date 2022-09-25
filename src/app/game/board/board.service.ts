@@ -193,7 +193,7 @@ export class BoardService {
         }
       }
     }
-    return this.invalidMove;;
+    return this.invalidMove;
   }
 
   isEnPassant(gameTreeNode: GameTreeNode, from: Cell, to: Cell, isAttackCheck: boolean): boolean {
@@ -201,16 +201,13 @@ export class BoardService {
     if(isAttackCheck) {
       return false;
     }
-    if(gameTreeNode.parent) {
-      const parent = gameTreeNode.parent;
-      if(from.piece?.color === 'white' && to.row === 5) {
-        if(parent.char === 'pawn' && parent.fromRow === 6 && parent.fromCol === to.col && parent.toRow === 4 && parent.toCol === to.col) {
-          return true;
-        }
-      } else if(from.piece?.color === 'black' && to.row === 2) {
-        if(parent.char === 'pawn' && parent.fromRow === 1 && parent.fromCol === to.col && parent.toRow === 3 && parent.toCol === to.col) {
-          return true;
-        }
+    if(from.piece?.color === 'white' && to.row === 5) {
+      if(gameTreeNode.char === 'pawn' && gameTreeNode.fromRow === 6 && gameTreeNode.fromCol === to.col && gameTreeNode.toRow === 4 && gameTreeNode.toCol === to.col) {
+        return true;
+      }
+    } else if(from.piece?.color === 'black' && to.row === 2) {
+      if(gameTreeNode.char === 'pawn' && gameTreeNode.fromRow === 1 && gameTreeNode.fromCol === to.col && gameTreeNode.toRow === 3 && gameTreeNode.toCol === to.col) {
+        return true;
       }
     }
     return false;
@@ -558,7 +555,9 @@ export class BoardService {
       parent: gameTreeNode,
       char: board.cells[fromRow][fromCol].piece!.char,
       nodes: [],
-      color
+      color,
+      tags: [],
+      desc: '',
     }
     return newTreeNode;
   }

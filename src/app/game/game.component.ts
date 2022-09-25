@@ -16,6 +16,7 @@ export class GameComponent implements OnInit {
   @ViewChild(BoardComponent) board: BoardComponent;
   private rootGameTreeNode: GameTreeNode;
   public isArrowEnabled: boolean = true;
+  tagValue: string;
   
   constructor(
     private boardService: BoardService,
@@ -24,6 +25,7 @@ export class GameComponent implements OnInit {
 
   ngOnInit(): void {
     this.rootGameTreeNode = this.gameTreeNode;
+    this.tagValue = this.gameTreeNode.tags.toString();
   }
 
   ngAfterViewInit(): void {
@@ -151,6 +153,8 @@ export class GameComponent implements OnInit {
       toRow: gameTreeNode.toRow,
       toCol: gameTreeNode.toCol,
       nodes: gameMoveTreeNodes,
+      tags: gameTreeNode.tags.filter(tag => tag.isNew).map(tag => tag.val),
+      desc: gameTreeNode.desc,
     }
     return gameMoveTreeNode;
   }
