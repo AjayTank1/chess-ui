@@ -421,7 +421,7 @@ export class BoardService {
   }
 
   removeOppPiece(gameTreeNode: GameTreeNode, cell: Cell) {
-    if(gameTreeNode.color === 'black') {
+    if(gameTreeNode.color === 'white') {
       gameTreeNode.board.whitePieces.delete(cell);
     } else {
       gameTreeNode.board.blackPieces.delete(cell);
@@ -429,7 +429,7 @@ export class BoardService {
   }
 
   removePiece(gameTreeNode: GameTreeNode, cell: Cell) {
-    if(gameTreeNode.color === 'white') {
+    if(gameTreeNode.color === 'black') {
       gameTreeNode.board.whitePieces.delete(cell);
     } else {
       gameTreeNode.board.blackPieces.delete(cell);
@@ -437,7 +437,7 @@ export class BoardService {
   }
 
   addPiece(gameTreeNode: GameTreeNode, cell: Cell) {
-    if(gameTreeNode.color === 'white') {
+    if(gameTreeNode.color === 'black') {
       gameTreeNode.board.whitePieces.add(cell);
     } else {
       gameTreeNode.board.blackPieces.add(cell);
