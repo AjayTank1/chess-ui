@@ -18,7 +18,7 @@ export class GameService {
     return this.http.post("http://localhost:6060/game", data);
   }
 
-  getAllGame(): Observable<any> {
+  getGame(): Observable<any> {
     return this.http.get("http://localhost:6060/game");
   }
 

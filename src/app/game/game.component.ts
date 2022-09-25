@@ -153,7 +153,7 @@ export class GameComponent implements OnInit {
       toRow: gameTreeNode.toRow,
       toCol: gameTreeNode.toCol,
       nodes: gameMoveTreeNodes,
-      tags: gameTreeNode.tags.filter(tag => tag.isNew).map(tag => tag.val),
+      tags: gameTreeNode.tags,
       desc: gameTreeNode.desc,
     }
     return gameMoveTreeNode;
