@@ -145,42 +145,26 @@ export class GameComponent implements OnInit {
 
   onSave(): void {
     let set: Set = new Set();
-    const payload: GameMoveTreeNode = this.convertGameTreeToGameMoveTree(this.rootGameTreeNode, {
-      fromRow: -1,
-      fromCol: -1,
-      toRow: -1,
-      toCol: -1,
-    }, set);
-    this.gameService.saveGame(payload).subscribe(x=> console.log(x));
+    const payload = this.convertGameTreeToGameMoveTree(this.rootGameTreeNode, set);
+    if(payload) {
+      this.gameService.saveGame(payload).subscribe(x=> console.log(x));
+    }
   }
 
-  convertGameTreeToGameMoveTree(gameTreeNode: GameTreeNode, move: Move, set: Set): GameMoveTreeNode {
+  convertGameTreeToGameMoveTree(gameTreeNode: GameTreeNode, set: Set): GameMoveTreeNode | undefined {
     if(set.get(gameTreeNode)) {
-      return {
-        fromRow: move.fromRow,
-        fromCol: move.fromCol,
-        toRow: move.toRow,
-        toCol: move.toCol,
-        nodes: [],
-        tags: gameTreeNode.tags,
-        desc: gameTreeNode.desc,
-        promotionTo: gameTreeNode.promotionTo,
-      } as GameMoveTreeNode;
+      return undefined;
     }
     set.put(gameTreeNode);
-    const gameMoveTreeNodes: GameMoveTreeNode[] = [];
+    const gameMoveTreeNodes: {val: GameMoveTreeNode | undefined, move: Move}[] = [];
     for(let node of gameTreeNode.nodes) {
-      gameMoveTreeNodes.push(this.convertGameTreeToGameMoveTree(node.val, node.move, set));
+      const res = this.convertGameTreeToGameMoveTree(node.val, set);
+      gameMoveTreeNodes.push({move: node.move, val: res});
     }
     const gameMoveTreeNode: GameMoveTreeNode = {
-      fromRow: move.fromRow,
-      fromCol: move.fromCol,
-      toRow: move.toRow,
-      toCol: move.toCol,
       nodes: gameMoveTreeNodes,
       tags: gameTreeNode.tags,
       desc: gameTreeNode.desc,
-      promotionTo: gameTreeNode.promotionTo,
     }
     return gameMoveTreeNode;
   }

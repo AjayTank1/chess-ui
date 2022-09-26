@@ -62,7 +62,7 @@ export class Set {
     let hash: number = 17;
     hash = 37*((hash<<2) - hash) + this.getStringHash(gameTreeNode.color);
     hash |= 0;
-    hash = 37*((hash<<5) - hash) + (gameTreeNode.isEnPassant ? 37 : 97);
+    hash = 37*((hash<<5) - hash) + 97*gameTreeNode.enPassantCol;
     hash |= 0;
 
     for(let i=0;i<BoardService.size;i++) {
@@ -100,7 +100,7 @@ export class Set {
     if(gameTreeNode1.color !== gameTreeNode2.color) {
       return false;
     }
-    if(gameTreeNode1.isEnPassant !== gameTreeNode2.isEnPassant) {
+    if(gameTreeNode1.enPassantCol !== gameTreeNode2.enPassantCol) {
       return false;
     }
     for(let i=0;i<BoardService.size;i++) {

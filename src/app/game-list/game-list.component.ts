@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { GameService } from './../game/game.service';
+import { MoveService } from './../game/move.service';
 import { BoardService } from './../game/board/board.service';
 import { Board, Game, GameTreeNode, GameMoveTreeNode, Move } from './../game/interface'
 import { Observable } from 'rxjs';
@@ -17,6 +18,7 @@ export class GameListComponent implements OnInit {
   constructor(
     private gameService: GameService,
     private boardService: BoardService,
+    private moveService: MoveService
   ) { }
 
   
@@ -32,10 +34,6 @@ export class GameListComponent implements OnInit {
     });
   }
 
-  areSameNode(node1: GameMoveTreeNode, node2: GameMoveTreeNode): boolean {
-    return node1.fromRow === node2.fromRow && node1.fromCol === node2.fromCol && node1.toRow === node2.toRow && node1.toCol === node2.toCol;
-  }
-
   convertToGameTreeNode(gameMoveTreeNode: GameMoveTreeNode | undefined): GameTreeNode {
     const root: GameTreeNode = {
       board: this.boardService.createNewBoard(),
@@ -43,7 +41,6 @@ export class GameListComponent implements OnInit {
       color: 'white',
       tags: [],
       desc: '',
-      isEnPassant: false,
       enPassantCol: -1,
     };
     if(gameMoveTreeNode) {
@@ -56,15 +53,12 @@ export class GameListComponent implements OnInit {
     gameTreeNode.tags = gameMoveTreeNode.tags;
     gameTreeNode.desc = gameMoveTreeNode.desc;
     for(let node of gameMoveTreeNode.nodes) {
-      const move: Move = {
-        fromRow: node.fromRow,
-        fromCol: node.fromCol,
-        toRow: node.toRow,
-        toCol: node.toCol,
-      };
-      const res: Observable<GameTreeNode> = this.gameService.makeMove(gameTreeNode, move, false, node.promotionTo);
-
-      this.startMovingPieces(this.getNextNode(gameTreeNode, move), node);
+      const move: Move = {...node.move};
+      const res: Observable<GameTreeNode> = this.gameService.makeMove(gameTreeNode, move, false);
+      res.subscribe();
+      if(node.val) {
+        this.startMovingPieces(this.moveService.getGameTreeNodeFromMove(gameTreeNode, move)!.val, node.val);
+      }
     }
   }
 

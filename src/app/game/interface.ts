@@ -5,21 +5,15 @@ export interface GameTreeNode {
 	parent?: GameTreeNode;
 	tags: string[],
 	desc: string,
-	// isCastlingPossible: boolean;
-	isEnPassant: boolean;
+	//TODO below
+	// isCastlingPossible: boolean;,remove is Moved from piece
 	enPassantCol: number;
-	promotionTo?: string
 }
 
 export interface GameMoveTreeNode {
-	fromRow: number;
-	fromCol: number;
-	toRow: number;
-	toCol: number;
-	nodes: GameMoveTreeNode[],
+	nodes: {move: Move, val: GameMoveTreeNode | undefined}[];
 	tags: string[],
 	desc: string,
-	promotionTo?: string
 }
 
 export interface Move {
@@ -27,6 +21,7 @@ export interface Move {
 	fromCol: number;
 	toRow: number;
 	toCol: number;
+	promotionTo?: string
 }
 
 export interface Game {

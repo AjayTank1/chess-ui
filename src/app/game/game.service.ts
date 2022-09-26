@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs'
+import { Observable, map, tap } from 'rxjs'
 import { BoardService } from './board/board.service';
 import { GameTreeNode, GameMoveTreeNode, Move } from './interface';
 import { GameRepoService } from './game-repo.service';
@@ -26,8 +26,8 @@ export class GameService {
     return this.http.get("http://localhost:6060/game");
   }
 
-  makeMove(gameTreeNode: GameTreeNode, move: Move, playSound: boolean, promotionTo?: string): Observable<GameTreeNode> {
-    return this.boardService.makeMove(gameTreeNode, move, promotionTo).pipe(map(res => {
+  makeMove(gameTreeNode: GameTreeNode, move: Move, playSound: boolean): Observable<GameTreeNode> {
+    return this.boardService.makeMove(gameTreeNode, move).pipe(map(res => {
       if(gameTreeNode !== res) {
         const cachedTreeNode: GameTreeNode | undefined = this.gameRepoService.getGameTreeNode(res);
         if(cachedTreeNode) {

@@ -16,7 +16,7 @@ export class BoardService {
   private dummyCell: Cell = {row: 0, col: 0};
   public static size: number = 8;
   
-  makeMove(gameTreeNode: GameTreeNode, move: Move, promotionTo?: string): Subject<GameTreeNode> {
+  makeMove(gameTreeNode: GameTreeNode, move: Move): Subject<GameTreeNode> {
     //TODO: make this method async properly, return valid info.
     const subject: Subject<GameTreeNode> = new ReplaySubject<GameTreeNode>(1);
     const board = gameTreeNode.board;
@@ -71,7 +71,6 @@ export class BoardService {
         newTreeNode.board.cells[to.row+1][to.col].piece = undefined;
       }
     } else if(moveType.type === 'enPassantForNextMove') {
-      newTreeNode.isEnPassant = true;
       newTreeNode.enPassantCol = move.toCol;
     }
 
@@ -90,10 +89,10 @@ export class BoardService {
       return subject;
     }
     
-    this.checkForPromotion(to, promotionTo)
+    this.checkForPromotion(to, move.promotionTo)
     .subscribe( (promotionTo: string) => {
       if(promotionTo) {
-        newTreeNode.promotionTo = promotionTo;
+        move.promotionTo = promotionTo;
         to.piece = this.getPromotedPiece(promotionTo, to.piece!.color);
       }
       subject.next(newTreeNode);
@@ -217,16 +216,16 @@ export class BoardService {
     if(isAttackCheck) {
       return false;
     }
-    if(!gameTreeNode.isEnPassant) {
+    if(gameTreeNode.enPassantCol === -1) {
       return false;
     }
 
     if(from.piece?.color === 'white' && to.row === 5) {
-      if(gameTreeNode.isEnPassant && gameTreeNode.enPassantCol === to.col) {
+      if(gameTreeNode.enPassantCol === to.col) {
         return true;
       }
     } else if(from.piece?.color === 'black' && to.row === 2) {
-      if(gameTreeNode.isEnPassant && gameTreeNode.enPassantCol === to.col) {
+      if(gameTreeNode.enPassantCol === to.col) {
         return true;
       }
     }
@@ -581,7 +580,6 @@ export class BoardService {
       color,
       tags: [],
       desc: '',
-      isEnPassant: false,
       enPassantCol: -1,
     }
     return newTreeNode;
