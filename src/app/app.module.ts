@@ -17,6 +17,7 @@ import { MoveService } from './game/move.service';
 import { GameListComponent } from './game-list/game-list.component';
 import { Routes, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { ToastNotificationsModule } from "ngx-toast-notifications";
 
 const routes: Routes = [
   {

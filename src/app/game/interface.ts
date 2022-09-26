@@ -2,7 +2,6 @@ export interface GameTreeNode {
 	board: Board;
 	nodes: {move: Move, val: GameTreeNode}[];
 	color: string;
-	parent?: GameTreeNode;
 	tags: string[],
 	desc: string,
 	//TODO below

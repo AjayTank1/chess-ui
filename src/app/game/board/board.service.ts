@@ -575,7 +575,6 @@ export class BoardService {
     this.copyBoard(board, newBoard);
     const newTreeNode: GameTreeNode = {
       board: newBoard,
-      parent: gameTreeNode,
       nodes: [],
       color,
       tags: [],
