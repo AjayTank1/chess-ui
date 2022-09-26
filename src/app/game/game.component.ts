@@ -17,7 +17,8 @@ export class GameComponent implements OnInit {
   @ViewChild(BoardComponent) board: BoardComponent;
   private rootGameTreeNode: GameTreeNode;
   public isArrowEnabled: boolean = true;
-  
+  private gamePlay: GamePlayNode;
+
   constructor(
     private boardService: BoardService,
     private gameService: GameService,
@@ -25,6 +26,9 @@ export class GameComponent implements OnInit {
 
   ngOnInit(): void {
     this.rootGameTreeNode = this.gameTreeNode;
+    this.gamePlay = {
+      val: this. rootGameTreeNode
+    }
   }
 
   ngAfterViewInit(): void {
@@ -38,7 +42,7 @@ export class GameComponent implements OnInit {
     if(this.gameTreeNode.nodes) {
       for(let node of this.gameTreeNode.nodes) {
         if(node.move.fromRow === $event.fromRow && node.move.fromCol === $event.fromCol && node.move.toRow === $event.toRow && node.move.toCol === $event.toCol) {
-          this.moveTo(node.val);
+          this.moveToFromDisplay(node.val);
           return;
         }
       }
@@ -49,15 +53,39 @@ export class GameComponent implements OnInit {
   }
 
   goBack(): void {
-    // TODO: implement
+    if(this.gamePlay.prev) {
+      this.playMove(this.gamePlay.prev.val);
+      this.gamePlay = this.gamePlay.prev;
+    }
   }
 
   goNext(): void {
-    //TODO: implement
+    if(this.gamePlay.next) {
+      this.playMove(this.gamePlay.next.val);
+      this.gamePlay = this.gamePlay.next;
+    }
   }
 
-  moveTo($event: any): void {
-    this.gameTreeNode = $event;
+  moveToFromDisplay(gameTreeNode: GameTreeNode): void {
+    if(this.gamePlay.next?.val === gameTreeNode) {
+      this.goNext();
+    } else {
+      this.moveTo(gameTreeNode);
+    }
+  }
+
+  moveTo(gameTreeNode: GameTreeNode): void {
+    const newGamePlay: GamePlayNode = {
+      val: gameTreeNode
+    }
+    this.gamePlay.next = newGamePlay;
+    newGamePlay.prev = this.gamePlay;
+    this.gamePlay = newGamePlay;
+    this.playMove(gameTreeNode);
+  }
+
+  playMove(gameTreeNode: GameTreeNode): void {
+    this.gameTreeNode = gameTreeNode;
     if(this.isArrowEnabled) {
       this.showArrows();
     }
@@ -165,4 +193,10 @@ export class GameComponent implements OnInit {
     return gameMoveTreeNode;
   }
 
+}
+
+interface GamePlayNode {
+  val: GameTreeNode,
+  prev?: GamePlayNode,
+  next?: GamePlayNode,
 }
