@@ -1,8 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs'
+import { Observable, map } from 'rxjs'
 import { BoardService } from './board/board.service';
-import { GameTreeNode, GameMoveTreeNode } from './interface';
+import { GameTreeNode, GameMoveTreeNode, Move } from './interface';
+import { GameRepoService } from './game-repo.service';
+import { MoveService } from './move.service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +14,8 @@ export class GameService {
   constructor(
     private http: HttpClient,
     private boardService: BoardService,
+    private gameRepoService: GameRepoService,
+    private moveService: MoveService,
   ) { }
 
   saveGame(data: GameMoveTreeNode): Observable<any> {
@@ -22,13 +26,27 @@ export class GameService {
     return this.http.get("http://localhost:6060/game");
   }
 
-  makeMove(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number, playSound: boolean, promotionTo?: string): Observable<GameTreeNode> {
-    return this.boardService.makeMove(gameTreeNode,  fromRow, fromCol, toRow, toCol, promotionTo).pipe(tap(res => {
+  makeMove(gameTreeNode: GameTreeNode, move: Move, playSound: boolean, promotionTo?: string): Observable<GameTreeNode> {
+    return this.boardService.makeMove(gameTreeNode, move, promotionTo).pipe(map(res => {
       if(gameTreeNode !== res) {
-        if(playSound) {
-          this.playAudio();
+        const cachedTreeNode: GameTreeNode | undefined = this.gameRepoService.getGameTreeNode(res);
+        if(cachedTreeNode) {
+          if(cachedTreeNode && cachedTreeNode != res) {
+            this.moveService.getGameTreeNodeFromMove(gameTreeNode, move)!.val = cachedTreeNode;
+          }
+          if(playSound) {
+            this.playAudio();
+          }
+          return cachedTreeNode;
+        } else {
+          this.gameRepoService.addGameTreeNode(res);
+          if(playSound) {
+            this.playAudio();
+          }
+          return res;
         }
       }
+      return res;
     }));
   }
 
@@ -37,5 +55,5 @@ export class GameService {
     audio.src = "../../../assets/audio/alarm.wav";
     audio.load();
     audio.play();
-  } 
+  }
 }

@@ -12,6 +12,8 @@ import { MoveDisplayComponent } from './game/move-display.component';
 import { GameTagComponent } from './game/game-tag.component';
 import { HttpClientModule } from '@angular/common/http';
 import { GameService } from './game/game.service';
+import { GameRepoService } from './game/game-repo.service';
+import { MoveService } from './game/move.service';
 import { GameListComponent } from './game-list/game-list.component';
 import { Routes, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -51,7 +53,7 @@ const routes: Routes = [
     RouterModule.forRoot(routes),
     FormsModule
   ],
-  providers: [BoardService, GameService],
+  providers: [BoardService, GameService, GameRepoService, MoveService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

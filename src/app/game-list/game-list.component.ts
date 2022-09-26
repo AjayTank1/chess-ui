@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { GameService } from './../game/game.service';
 import { BoardService } from './../game/board/board.service';
-import { Board, Game, GameTreeNode, GameMoveTreeNode } from './../game/interface'
+import { Board, Game, GameTreeNode, GameMoveTreeNode, Move } from './../game/interface'
 import { Observable } from 'rxjs';
 
 @Component({
@@ -39,15 +39,12 @@ export class GameListComponent implements OnInit {
   convertToGameTreeNode(gameMoveTreeNode: GameMoveTreeNode | undefined): GameTreeNode {
     const root: GameTreeNode = {
       board: this.boardService.createNewBoard(),
-      fromRow: -1,
-      fromCol: -1,
-      toRow: -1,
-      toCol: -1,
-      char: '',
       nodes: [],
       color: 'white',
       tags: [],
       desc: '',
+      isEnPassant: false,
+      enPassantCol: -1,
     };
     if(gameMoveTreeNode) {
       this.startMovingPieces(root, gameMoveTreeNode);
@@ -59,15 +56,25 @@ export class GameListComponent implements OnInit {
     gameTreeNode.tags = gameMoveTreeNode.tags;
     gameTreeNode.desc = gameMoveTreeNode.desc;
     for(let node of gameMoveTreeNode.nodes) {
-      //TODO: pass piece promo info
-      const res: Observable<GameTreeNode> = this.gameService.makeMove(gameTreeNode, node.fromRow, node.fromCol, node.toRow, node.toCol, false, node.promotionTo);
-      this.startMovingPieces(gameTreeNode.nodes[gameTreeNode.nodes.length-1], node);
+      const move: Move = {
+        fromRow: node.fromRow,
+        fromCol: node.fromCol,
+        toRow: node.toRow,
+        toCol: node.toCol,
+      };
+      const res: Observable<GameTreeNode> = this.gameService.makeMove(gameTreeNode, move, false, node.promotionTo);
+
+      this.startMovingPieces(this.getNextNode(gameTreeNode, move), node);
     }
   }
 
   convertTreeToGraph(gameTreeNodeRoot: GameTreeNode): GameTreeNode {
     //TODO: implement this
     return gameTreeNodeRoot;
+  }
+
+  getNextNode(gameTreeNode: GameTreeNode, move: Move): GameTreeNode {
+    return gameTreeNode;
   }
 
 }

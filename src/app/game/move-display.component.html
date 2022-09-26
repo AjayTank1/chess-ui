@@ -1,8 +1,8 @@
 <div *ngIf="currentTreeNode" class="display">
 	<div *ngFor="let node of currentTreeNode.nodes" (click)=moveTo(node) (mouseenter) ="mouseEnter(node)"  (mouseleave) ="mouseLeave(node)">
 		<div class="oneMove">
-			{{node.fromRow}} {{node.fromCol}} to {{node.toRow}} {{node.toCol}}
-			{{node.tags}}
+			{{node.move.fromRow}} {{node.move.fromCol}} to {{node.move.toRow}} {{node.move.toCol}}
+			{{node.val.tags}}
 		</div>
 	</div>
 </div>

@@ -1,8 +1,9 @@
 import { Component, OnInit, Input, ViewChild, ElementRef} from '@angular/core';
 import { BoardService } from './board/board.service';
 import { BoardComponent } from './board/board.component';
-import { Board, Game, Event, GameTreeNode, GameMoveTreeNode } from './interface';
+import { Board, Game, Event, GameTreeNode, GameMoveTreeNode, Move } from './interface';
 import { GameService } from './game.service';
+import { GameRepoService, Set } from './game-repo.service';
 
 @Component({
   selector: 'game',
@@ -20,7 +21,7 @@ export class GameComponent implements OnInit {
   
   constructor(
     private boardService: BoardService,
-    private gameService: GameService
+    private gameService: GameService,
   ) { }
 
   ngOnInit(): void {
@@ -38,13 +39,13 @@ export class GameComponent implements OnInit {
     }
     if(this.gameTreeNode.nodes) {
       for(let node of this.gameTreeNode.nodes) {
-        if(node.fromRow === $event.fromRow && node.fromCol === $event.fromCol && node.toRow === $event.toRow && node.toCol === $event.toCol) {
-          this.moveTo(node);
+        if(node.move.fromRow === $event.fromRow && node.move.fromCol === $event.fromCol && node.move.toRow === $event.toRow && node.move.toCol === $event.toCol) {
+          this.moveTo(node.val);
           return;
         }
       }
     }
-    this.gameService.makeMove(this.gameTreeNode, $event.fromRow, $event.fromCol, $event.toRow, $event.toCol, false).subscribe(res => {
+    this.gameService.makeMove(this.gameTreeNode, {fromRow: $event.fromRow, fromCol: $event.fromCol, toRow: $event.toRow, toCol: $event.toCol}, false).subscribe(res => {
       this.moveTo(res);
     });
   }
@@ -59,7 +60,7 @@ export class GameComponent implements OnInit {
     //TODO: implement
   }
 
-  moveTo($event: GameTreeNode): void {
+  moveTo($event: any): void {
     this.gameTreeNode = $event;
     if(this.isArrowEnabled) {
       this.showArrows();
@@ -78,26 +79,28 @@ export class GameComponent implements OnInit {
     this.board.clearBoard();
     if(this.gameTreeNode.nodes) {
       for(let node of this.gameTreeNode.nodes) {
-        this.drawArrowForCell(node.fromRow, node.fromCol, node.toRow, node.toCol, 'green');
+        this.drawArrowForCell(node.move, 'green');
       }
     }
   }
 
-  mouseEnter(node: GameTreeNode) {
+  mouseEnter($event: any) {
     if(this.isArrowEnabled) {
-      this.drawArrowForCell(node.fromRow, node.fromCol, node.toRow, node.toCol, 'yellow');
+      this.drawArrowForCell($event.move, 'yellow');
     }
   }
 
-  mouseLeave(node: GameTreeNode) {
+  mouseLeave($event: any) {
     if(this.isArrowEnabled) {
-      this.drawArrowForCell(node.fromRow, node.fromCol, node.toRow, node.toCol, 'green');
+      this.drawArrowForCell($event.move, 'green');
     }
   }
 
-  drawArrowForCell(fromRow: number, fromCol: number, toRow: number, toCol: number, color: string): void {
-    fromRow = 7 - fromRow;
-    toRow = 7 - toRow;
+  drawArrowForCell(move: Move, color: string): void {
+    const fromRow = 7 - move.fromRow;
+    const toRow = 7 - move.toRow;
+    const fromCol = move.fromCol;
+    const toCol = move.toCol;
     const cellSize = 300/8;
 
     const len = Math.sqrt((fromRow-toRow)*(fromRow-toRow) + (fromCol - toCol)*(fromCol - toCol));
@@ -141,21 +144,39 @@ export class GameComponent implements OnInit {
   }
 
   onSave(): void {
-    const payload: GameMoveTreeNode = this.convertGameTreeToGameMoveTree(this.rootGameTreeNode);
+    let set: Set = new Set();
+    const payload: GameMoveTreeNode = this.convertGameTreeToGameMoveTree(this.rootGameTreeNode, {
+      fromRow: -1,
+      fromCol: -1,
+      toRow: -1,
+      toCol: -1,
+    }, set);
     this.gameService.saveGame(payload).subscribe(x=> console.log(x));
   }
 
-  convertGameTreeToGameMoveTree(gameTreeNode: GameTreeNode): GameMoveTreeNode {
-    //TODO: save only new variation
+  convertGameTreeToGameMoveTree(gameTreeNode: GameTreeNode, move: Move, set: Set): GameMoveTreeNode {
+    if(set.get(gameTreeNode)) {
+      return {
+        fromRow: move.fromRow,
+        fromCol: move.fromCol,
+        toRow: move.toRow,
+        toCol: move.toCol,
+        nodes: [],
+        tags: gameTreeNode.tags,
+        desc: gameTreeNode.desc,
+        promotionTo: gameTreeNode.promotionTo,
+      } as GameMoveTreeNode;
+    }
+    set.put(gameTreeNode);
     const gameMoveTreeNodes: GameMoveTreeNode[] = [];
     for(let node of gameTreeNode.nodes) {
-      gameMoveTreeNodes.push(this.convertGameTreeToGameMoveTree(node));
+      gameMoveTreeNodes.push(this.convertGameTreeToGameMoveTree(node.val, node.move, set));
     }
     const gameMoveTreeNode: GameMoveTreeNode = {
-      fromRow: gameTreeNode.fromRow,
-      fromCol: gameTreeNode.fromCol,
-      toRow: gameTreeNode.toRow,
-      toCol: gameTreeNode.toCol,
+      fromRow: move.fromRow,
+      fromCol: move.fromCol,
+      toRow: move.toRow,
+      toCol: move.toCol,
       nodes: gameMoveTreeNodes,
       tags: gameTreeNode.tags,
       desc: gameTreeNode.desc,

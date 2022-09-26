@@ -15,6 +15,6 @@
 		<game-tag [gameTreeNode]="gameTreeNode"></game-tag>
 		<button (click)=onSave()>Save</button>
 	</div>
-	<move-display [currentTreeNode]="gameTreeNode" (move)=moveTo($event) (mouseLeaveEvent)=mouseLeave($event) (mouseEnterEvent)=mouseEnter($event)></move-display>
+	<move-display [currentTreeNode]="gameTreeNode" (moveEvent)=moveTo($event.val) (mouseLeaveEvent)=mouseLeave($event) (mouseEnterEvent)=mouseEnter($event)></move-display>
 </div>
 

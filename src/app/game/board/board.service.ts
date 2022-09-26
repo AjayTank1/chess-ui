@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Cell, Piece, Board, MoveType, GameTreeNode } from './../interface';
+import { Cell, Piece, Board, MoveType, GameTreeNode, Move } from './../interface';
 import { of, Subject, ReplaySubject } from 'rxjs';
 import { MatDialog, MatDialogConfig, MatDialogRef } from '@angular/material/dialog';
 import { ModalComponent } from './../modal/modal.component';
@@ -14,14 +14,14 @@ export class BoardService {
   private invalidMove: MoveType = {valid: false, capture: false};
   private validSimpleMove: MoveType = {valid: true, capture: false};
   private dummyCell: Cell = {row: 0, col: 0};
-  private size: number = 8;
+  public static size: number = 8;
   
-  makeMove(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number, promotionTo?: string): Subject<GameTreeNode> {
+  makeMove(gameTreeNode: GameTreeNode, move: Move, promotionTo?: string): Subject<GameTreeNode> {
     //TODO: make this method async properly, return valid info.
     const subject: Subject<GameTreeNode> = new ReplaySubject<GameTreeNode>(1);
     const board = gameTreeNode.board;
-    let from: Cell = board.cells[fromRow][fromCol];
-    let to: Cell = board.cells[toRow][toCol];
+    let from: Cell = board.cells[move.fromRow][move.fromCol];
+    let to: Cell = board.cells[move.toRow][move.toCol];
 
     const moveType: MoveType = this.isMovePossible(gameTreeNode, from, to);
     
@@ -31,13 +31,13 @@ export class BoardService {
       return subject;
     }
 
-    const newTreeNode = this.getTempTreeNode(gameTreeNode, fromRow, fromCol, toRow, toCol);
-    gameTreeNode.nodes.push(newTreeNode);
+    const newTreeNode = this.getTempTreeNode(gameTreeNode);
+    gameTreeNode.nodes.push({move, val: newTreeNode});
     
     to = newTreeNode.board.cells[to.row][to.col];
     from = newTreeNode.board.cells[from.row][from.col];
 
-    //make move on new board.  
+    //make move on new board.
     if(moveType.capture) {
       this.removeOppPiece(newTreeNode, to);
     }
@@ -70,6 +70,9 @@ export class BoardService {
         this.removePiece(newTreeNode, newTreeNode.board.cells[to.row+1][to.col]);
         newTreeNode.board.cells[to.row+1][to.col].piece = undefined;
       }
+    } else if(moveType.type === 'enPassantForNextMove') {
+      newTreeNode.isEnPassant = true;
+      newTreeNode.enPassantCol = move.toCol;
     }
 
     if(to.piece.char === 'king') {
@@ -81,7 +84,7 @@ export class BoardService {
     }
     
     if(this.isKingUnderAttack(newTreeNode)) {
-      gameTreeNode.nodes!.pop();
+      gameTreeNode.nodes.pop();
       subject.next(gameTreeNode);
       subject.complete();
       return subject;
@@ -93,7 +96,7 @@ export class BoardService {
         newTreeNode.promotionTo = promotionTo;
         to.piece = this.getPromotedPiece(promotionTo, to.piece!.color);
       }
-      subject.next(gameTreeNode.nodes[gameTreeNode.nodes.length-1]);
+      subject.next(newTreeNode);
       subject.complete();
     });
 
@@ -169,8 +172,20 @@ export class BoardService {
       if(Math.abs(from.row-to.row) === 2) {
         if(!to.piece) {
           if(from.piece?.color === 'white' && from.row === 1) {
+            if(from.col > 0 && gameTreeNode.board.cells[3][from.col-1].piece?.color === 'black' && gameTreeNode.board.cells[3][from.col-1].piece?.char === 'pawn') {
+              return {type: 'enPassantForNextMove', valid: true, capture: false};
+            }
+            if(from.col < 7 && gameTreeNode.board.cells[3][from.col+1].piece?.color === 'black' && gameTreeNode.board.cells[3][from.col+1].piece?.char === 'pawn') {
+              return {type: 'enPassantForNextMove', valid: true, capture: false};
+            }
             return this.validSimpleMove;
           } else if(from.piece?.color === 'black' && from.row === 6) {
+            if(from.col > 0 && gameTreeNode.board.cells[4][from.col-1].piece?.color === 'white' && gameTreeNode.board.cells[4][from.col-1].piece?.char === 'pawn') {
+              return {type: 'enPassantForNextMove', valid: true, capture: false};
+            }
+            if(from.col < 7 && gameTreeNode.board.cells[4][from.col+1].piece?.color === 'white' && gameTreeNode.board.cells[4][from.col+1].piece?.char === 'pawn') {
+              return {type: 'enPassantForNextMove', valid: true, capture: false};
+            }
             return this.validSimpleMove;
           }
         }
@@ -202,12 +217,16 @@ export class BoardService {
     if(isAttackCheck) {
       return false;
     }
+    if(!gameTreeNode.isEnPassant) {
+      return false;
+    }
+
     if(from.piece?.color === 'white' && to.row === 5) {
-      if(gameTreeNode.char === 'pawn' && gameTreeNode.fromRow === 6 && gameTreeNode.fromCol === to.col && gameTreeNode.toRow === 4 && gameTreeNode.toCol === to.col) {
+      if(gameTreeNode.isEnPassant && gameTreeNode.enPassantCol === to.col) {
         return true;
       }
     } else if(from.piece?.color === 'black' && to.row === 2) {
-      if(gameTreeNode.char === 'pawn' && gameTreeNode.fromRow === 1 && gameTreeNode.fromCol === to.col && gameTreeNode.toRow === 3 && gameTreeNode.toCol === to.col) {
+      if(gameTreeNode.isEnPassant && gameTreeNode.enPassantCol === to.col) {
         return true;
       }
     }
@@ -541,7 +560,7 @@ export class BoardService {
     piece.url = url;
   }
 
-  getTempTreeNode(gameTreeNode: GameTreeNode, fromRow: number, fromCol: number, toRow: number, toCol: number): GameTreeNode {
+  getTempTreeNode(gameTreeNode: GameTreeNode): GameTreeNode {
     const board = gameTreeNode.board;
     const color = gameTreeNode.color === 'white' ? 'black' : 'white';
     const newBoard: Board = {
@@ -557,16 +576,13 @@ export class BoardService {
     this.copyBoard(board, newBoard);
     const newTreeNode: GameTreeNode = {
       board: newBoard,
-      fromRow,
-      fromCol,
-      toRow,
-      toCol,
       parent: gameTreeNode,
-      char: board.cells[fromRow][fromCol].piece!.char,
       nodes: [],
       color,
       tags: [],
       desc: '',
+      isEnPassant: false,
+      enPassantCol: -1,
     }
     return newTreeNode;
   }
@@ -574,9 +590,9 @@ export class BoardService {
   getTempCell(): Cell[][] {
     
     const newCells: Cell[][] = [];
-    for(let i=0; i<this.size; i++) {
+    for(let i=0; i<BoardService.size; i++) {
       const row: Cell[] = [];
-      for(let j=0; j<this.size; j++) {        
+      for(let j=0; j<BoardService.size; j++) {        
         row.push(this.dummyCell);
       }
       newCells.push(row);
@@ -619,9 +635,9 @@ export class BoardService {
     const whiteCapturedPieces: Set<Piece> = new Set<Piece>();
     const blackCapturedPieces: Set<Piece> = new Set<Piece>();
 
-    for(let i=0; i<this.size; i++) {
+    for(let i=0; i<BoardService.size; i++) {
       const row: Cell[] = [];
-      for(let j=0; j<this.size; j++) {
+      for(let j=0; j<BoardService.size; j++) {
         const piece: Piece | undefined = this.getPiece(i,j);
         const cell: Cell = {row: i, col: j, piece};
         row.push(cell);

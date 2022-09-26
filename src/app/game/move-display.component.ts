@@ -1,5 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
-import { Board, Game, Event, GameTreeNode } from './interface';
+import { Board, Game, Event, GameTreeNode, Move } from './interface';
 
 @Component({
   selector: 'move-display',
@@ -9,7 +9,7 @@ import { Board, Game, Event, GameTreeNode } from './interface';
 export class MoveDisplayComponent implements OnInit {
 
   @Input() currentTreeNode: GameTreeNode;
-  @Output() move = new EventEmitter();
+  @Output() moveEvent = new EventEmitter();
   @Output() mouseEnterEvent = new EventEmitter();
   @Output() mouseLeaveEvent = new EventEmitter();
 
@@ -19,14 +19,14 @@ export class MoveDisplayComponent implements OnInit {
     
   }
 
-  moveTo(node: GameTreeNode) {
-    this.move.emit(node);
+  moveTo($event: any) {
+    this.moveEvent.emit($event);
   }
 
-  mouseEnter(node: GameTreeNode) {
-    this.mouseEnterEvent.emit(node);
+  mouseEnter($event: any) {
+    this.mouseEnterEvent.emit($event);
   }
-  mouseLeave(node: GameTreeNode) {
-    this.mouseLeaveEvent.emit(node);
+  mouseLeave($event: any) {
+    this.mouseLeaveEvent.emit($event);
   }
 }
