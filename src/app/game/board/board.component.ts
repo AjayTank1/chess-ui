@@ -13,13 +13,14 @@ import { MatDialog, MatDialogConfig, MatDialogRef } from '@angular/material/dial
 export class BoardComponent implements OnInit {
 
   @Input() public board: Board;
-
+  @Input() public reverse: boolean;
   private size: number = 500/8;
   private mouseDown = new Subject<number[]>();
   private mouseUp = new Subject<number[]>();
   private destroyed = new Subject<void>();
   @ViewChild('canvas', {static: false}) canvas: ElementRef<HTMLCanvasElement>;
   public context: CanvasRenderingContext2D;
+
 
   @Output() makeMove = new EventEmitter();
 
@@ -29,7 +30,12 @@ export class BoardComponent implements OnInit {
   ngOnInit(): void {
     this.mouseUp.pipe(takeUntil(this.destroyed), withLatestFrom(this.mouseDown))
     .subscribe(([to, from]) => {
-        console.log({to, from});
+        if(this.reverse) {
+          to[0] = 7 - to[0];
+          to[1] = 7 - to[1];
+          from[0] = 7 - from[0];
+          from[1] = 7 - from[1];
+        }
         this.makeMove.emit({
           fromRow: from[0],
           fromCol: from[1],

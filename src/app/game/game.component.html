@@ -1,6 +1,6 @@
 <div class="game">
 	<div>
-		<board #board [board]="gameTreeNode.board" (makeMove)=makeMove($event)></board>
+		<board #board [board]="gameTreeNode.board" [reverse]="reverse" (makeMove)=makeMove($event)></board>
 		<div class="controller">
 			<button (click)=goBack()><</button>
 			<button (click)=goNext()>></button>
@@ -11,6 +11,7 @@
 					[(ngModel)]="isArrowEnabled"
 					(change)="chechArrows()"/>
 			</span>
+			<button (click)=reverseBoard()>Reverse</button>
 		</div>
 		<game-tag [gameTreeNode]="gameTreeNode"></game-tag>
 		<button (click)=onSave()>Save</button>

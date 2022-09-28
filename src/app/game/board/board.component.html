@@ -1,6 +1,6 @@
-<div class="board">
+<div class="board" [ngClass]="reverse ? 'board-dir-reverse' : 'board-dir'">
 	<ng-container *ngFor="let row of board.cells; let i = index" >
-		<div class="row">
+		<div class="row" [ngClass]="reverse ? 'row-dir-reverse' : 'row-dir'">
 			<ng-container *ngFor="let cell of row">
 				<cell [cell]=cell></cell>
 			</ng-container>

@@ -17,6 +17,7 @@ export class GameComponent implements OnInit {
   @ViewChild(BoardComponent) board: BoardComponent;
   private rootGameTreeNode: GameTreeNode;
   public isArrowEnabled: boolean = true;
+  public reverse: boolean = false;
   private gamePlay: GamePlayNode;
 
   constructor(
@@ -164,7 +165,17 @@ export class GameComponent implements OnInit {
     for(let c of cord) {
       c[1] /= 2;
     }
+    if(this.reverse) {
+      this.reverseCord(cord);
+    }
     return cord;
+  }
+
+  reverseCord(cord: number[][]): void {
+    for(let c of cord) {
+      c[0] = 300-c[0];
+      c[1] = 150-c[1];
+    }
   }
 
   onSave(): void {
@@ -191,6 +202,13 @@ export class GameComponent implements OnInit {
       desc: gameTreeNode.desc,
     }
     return gameMoveTreeNode;
+  }
+
+  reverseBoard(): void {
+    this.reverse = !this.reverse;
+    if(this.isArrowEnabled) {
+      this.showArrows();
+    }
   }
 
 }

@@ -1,15 +1,30 @@
 .board {
 	display: flex;
-	flex-direction: column-reverse;
 	width: fit-content;
 	border:2px solid black;
 	position: absolute;
 	//z-index: -1;
 }
 
+.board-dir {
+	flex-direction: column-reverse;
+}
+
+.board-dir-reverse {
+	flex-direction: column;
+}
+
 .row {
 	display: flex;
 	flex-direction: row;
+}
+
+.row-dir {
+	flex-direction: row;
+}
+
+.row-dir-reverse {
+	flex-direction: row-reverse;
 }
 
 .canvas {
