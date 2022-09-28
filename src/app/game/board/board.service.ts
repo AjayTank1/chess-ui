@@ -601,7 +601,20 @@ export class BoardService {
 
     for(let i=0; i<from.cells.length; i++) {
       for(let j=0; j<from.cells.length; j++) {
-        to.cells[i][j] = {...from.cells[i][j]};
+        let piece = undefined;
+        if(from.cells[i][j].piece) {
+          piece = {
+            color: from.cells[i][j].piece!.color,
+            char: from.cells[i][j].piece!.char,
+            url: from.cells[i][j].piece!.url,
+            isMoved: from.cells[i][j].piece!.isMoved,
+          };
+        }
+        to.cells[i][j] = {
+          row: from.cells[i][j].row,
+          col: from.cells[i][j].col,
+          piece: piece,
+        };
       }
     }
     
