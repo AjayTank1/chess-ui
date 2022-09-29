@@ -12,6 +12,7 @@ export class MoveDisplayComponent implements OnInit {
   @Output() moveEvent = new EventEmitter();
   @Output() mouseEnterEvent = new EventEmitter();
   @Output() mouseLeaveEvent = new EventEmitter();
+  @Output() deleteEvent = new EventEmitter();
 
   constructor() { }
 
@@ -28,5 +29,10 @@ export class MoveDisplayComponent implements OnInit {
   }
   mouseLeave($event: any) {
     this.mouseLeaveEvent.emit($event);
+  }
+
+  deleteNode(node: any) {
+    //open modal
+    this.deleteEvent.emit({parentNode: this.currentTreeNode, nodeToBoRemoved: node});
   }
 }

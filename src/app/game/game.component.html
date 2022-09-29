@@ -11,11 +11,17 @@
 					[(ngModel)]="isArrowEnabled"
 					(change)="chechArrows()"/>
 			</span>
-			<button (click)=reverseBoard()>Reverse</button>
+			<button (click)=reverseBoard()>Flip</button>
 		</div>
 		<game-tag [gameTreeNode]="gameTreeNode"></game-tag>
 		<button (click)=onSave()>Save</button>
 	</div>
-	<move-display [currentTreeNode]="gameTreeNode" (moveEvent)=moveToFromDisplay($event.val) (mouseLeaveEvent)=mouseLeave($event) (mouseEnterEvent)=mouseEnter($event)></move-display>
+	<move-display
+		[currentTreeNode]="gameTreeNode"
+		(moveEvent)=moveToFromDisplay($event.val)
+		(mouseLeaveEvent)=mouseLeave($event)
+		(mouseEnterEvent)=mouseEnter($event)
+		(deleteEvent)=delete($event)>
+	</move-display>
 </div>
 

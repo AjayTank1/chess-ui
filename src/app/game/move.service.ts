@@ -26,4 +26,8 @@ export class MoveService {
     return move1.fromRow === move2.fromRow && move1.fromCol === move2.fromCol && move1.toRow === move2.toRow && move1.toCol === move2.toCol;
   }
 
+  removeNodeFromParent(gameTreeNode: GameTreeNode, remove: {gameTreeNode: GameTreeNode, move: Move}): void {
+    //delete only if it is not attached any other node.
+  }
+
 }

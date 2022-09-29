@@ -1,9 +1,10 @@
-import { Component, OnInit, Input, ViewChild, ElementRef} from '@angular/core';
+import { Component, OnInit, Input, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { BoardService } from './board/board.service';
 import { BoardComponent } from './board/board.component';
 import { Board, Game, Event, GameTreeNode, GameMoveTreeNode, Move } from './interface';
 import { GameService } from './game.service';
 import { GameRepoService, Set } from './game-repo.service';
+import { MoveService } from './move.service';
 
 @Component({
   selector: 'game',
@@ -23,6 +24,7 @@ export class GameComponent implements OnInit {
   constructor(
     private boardService: BoardService,
     private gameService: GameService,
+    private moveService: MoveService,
   ) { }
 
   ngOnInit(): void {
@@ -51,6 +53,16 @@ export class GameComponent implements OnInit {
     this.gameService.makeMove(this.gameTreeNode, {fromRow: $event.fromRow, fromCol: $event.fromCol, toRow: $event.toRow, toCol: $event.toCol}, false).subscribe(res => {
       this.moveTo(res);
     });
+  }
+
+  @HostListener('document:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent) { 
+    // this.key = event.key;
+    if(event.key == 'ArrowLeft') {
+      this.goBack();
+    } else if(event.key == 'ArrowRight') {
+      this.goNext();
+    }
   }
 
   goBack(): void {
@@ -176,6 +188,12 @@ export class GameComponent implements OnInit {
       c[0] = 300-c[0];
       c[1] = 150-c[1];
     }
+  }
+
+  delete($event: any): void {
+    const parentNode: GameTreeNode = $event.parentNode;
+    const nodeToBoRemoved: {gameTreeNode: GameTreeNode, move: Move} = $event.nodeToBoRemoved;
+    this.moveService.removeNodeFromParent(parentNode, nodeToBoRemoved);
   }
 
   onSave(): void {
